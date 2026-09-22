@@ -1,5 +1,9 @@
 import { test, expect } from '@playwright/test';
 
+test.beforeEach(async ({ page }) => {
+  await page.route('**/api/management/characters/*', route => route.fulfill({ json: { accountId: null, assignment: '', notes: '', revision: 0, tracks: [] } }));
+});
+
 test('inventory separates available stock and copies and supports filters and pagination', async ({ page }) => {
   const available = Array.from({ length: 28 }, (_, index) => ({ typeId: 100 + index, name: `Material ${String(index + 1).padStart(2, '0')}`, category: 'Minerals', quantity: 100, availability: 'Available stock', itemId: 1000 + index, locationId: 60000001, locationFlag: 'Hangar', locationName: 'Jita station' }));
   const fitted = { typeId: 200, name: 'Fitted module', category: 'Modules', quantity: 1, availability: 'Fitted / contained assets', itemId: 2000, locationId: 9999, locationFlag: 'HiSlot0', locationName: 'Inside Raven · Jita station' };

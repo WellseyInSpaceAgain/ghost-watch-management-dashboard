@@ -277,7 +277,12 @@ public class SsoTests
             encrypted = character.RefreshToken;
             db.EveSections.Add(new() { CharacterId = character.CharacterId, Name = "wallet", Json = "123.45" });
             db.EveLocationNames.Add(new() { CharacterId = character.CharacterId, LocationId = 1000000000001, Name = "Linked location", ExpiresAt = DateTime.UtcNow.AddHours(1) });
-            db.EconomyTracks.Add(new() { Name = "Programme", Notes = "Keep this local plan" });
+            var track = new GhostWatch.Api.Economics.Tracks.EconomyTrack { Name = "Programme", Notes = "Keep this local plan" };
+            db.EconomyTracks.Add(track);
+            var account = new GhostWatch.Api.Management.ManagedAccount { Name = "Main", Subscription = "Omega" };
+            db.ManagedAccounts.Add(account);
+            db.CharacterPlans.Add(new() { CharacterId = character.CharacterId, AccountId = account.Id, Assignment = "Controller" });
+            db.CharacterTracks.Add(new() { CharacterId = character.CharacterId, TrackId = track.Id });
             await db.SaveChangesAsync();
             await scope.ServiceProvider.GetRequiredService<CharacterAccessTokens>().Get(character.CharacterId, default);
         }
@@ -294,6 +299,9 @@ public class SsoTests
             Assert.Equal("123.45", (await db.EveSections.SingleAsync()).Json);
             Assert.Equal("Linked location", (await db.EveLocationNames.SingleAsync()).Name);
             Assert.Equal("Keep this local plan", (await db.EconomyTracks.SingleAsync()).Notes);
+            Assert.Equal("Omega", (await db.ManagedAccounts.SingleAsync()).Subscription);
+            Assert.Equal("Controller", (await db.CharacterPlans.SingleAsync()).Assignment);
+            Assert.Single(await db.CharacterTracks.ToListAsync());
             var exchanges = upstream.Exchanges;
             await scope.ServiceProvider.GetRequiredService<CharacterAccessTokens>().Get(character.CharacterId, default);
             Assert.Equal(exchanges + 1, upstream.Exchanges); // Re-authorisation invalidates old access-token cache.

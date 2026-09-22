@@ -1,5 +1,9 @@
 import { test, expect } from '@playwright/test';
 
+test.beforeEach(async ({ page }) => {
+  await page.route('**/api/management/characters/*', route => route.fulfill({ json: { accountId: null, assignment: '', notes: '', revision: 0, tracks: [] } }));
+});
+
 const missing = ['esi-universe.read_structures.v1', 'esi-assets.read_assets.v1'];
 const permissions = (healthy: boolean) => ({ scopesKnown: true, hasAllRequiredScopes: healthy, missingScopeCount: healthy ? 0 : missing.length, missingScopes: healthy ? [] : missing });
 const detail = (healthy: boolean) => ({ character: { characterId: 7, characterName: 'Permission pilot' }, permissions: permissions(healthy), progress: { state: 'idle' }, sections: [], jobs: [], capacity: null });

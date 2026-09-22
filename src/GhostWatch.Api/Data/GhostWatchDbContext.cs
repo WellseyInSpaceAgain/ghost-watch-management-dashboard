@@ -1,4 +1,5 @@
 using GhostWatch.Api.Economics.Tracks;
+using GhostWatch.Api.Management;
 using GhostWatch.Api.Eve;
 using GhostWatch.Api.Eve.Inventory;
 using GhostWatch.Api.Eve.Esi;
@@ -8,6 +9,9 @@ namespace GhostWatch.Api.Data;
 
 public sealed class GhostWatchDbContext(DbContextOptions<GhostWatchDbContext> options) : DbContext(options)
 {
+    public DbSet<ManagedAccount> ManagedAccounts => Set<ManagedAccount>();
+    public DbSet<CharacterPlan> CharacterPlans => Set<CharacterPlan>();
+    public DbSet<CharacterTrack> CharacterTracks => Set<CharacterTrack>();
     public DbSet<EveLocationName> EveLocationNames => Set<EveLocationName>();
     public DbSet<PublicEveLookup> PublicEveLookups => Set<PublicEveLookup>();
     public DbSet<EveSection> EveSections => Set<EveSection>();
@@ -17,6 +21,15 @@ public sealed class GhostWatchDbContext(DbContextOptions<GhostWatchDbContext> op
 
     protected override void OnModelCreating(ModelBuilder model)
     {
+        var account = model.Entity<ManagedAccount>();
+        account.HasKey(x => x.Id); account.Property(x => x.Revision).IsConcurrencyToken();
+        var plan = model.Entity<CharacterPlan>();
+        plan.HasKey(x => x.CharacterId); plan.Property(x => x.CharacterId).ValueGeneratedNever(); plan.Property(x => x.Revision).IsConcurrencyToken();
+        plan.HasOne<EveCharacter>().WithOne().HasForeignKey<CharacterPlan>(x => x.CharacterId).OnDelete(DeleteBehavior.Restrict);
+        plan.HasOne(x => x.Account).WithMany().HasForeignKey(x => x.AccountId).OnDelete(DeleteBehavior.Restrict);
+        var link = model.Entity<CharacterTrack>(); link.HasKey(x => new { x.CharacterId, x.TrackId });
+        link.HasOne(x => x.Character).WithMany().HasForeignKey(x => x.CharacterId).OnDelete(DeleteBehavior.Restrict);
+        link.HasOne(x => x.Track).WithMany().HasForeignKey(x => x.TrackId).OnDelete(DeleteBehavior.Restrict);
         var location = model.Entity<EveLocationName>();
         location.HasKey(x => new { x.CharacterId, x.LocationId });
         location.HasOne<EveCharacter>().WithMany().HasForeignKey(x => x.CharacterId).OnDelete(DeleteBehavior.Restrict);

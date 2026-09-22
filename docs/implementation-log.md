@@ -8,3 +8,11 @@
 - Created `implementation-status.md` against all 45 acceptance criteria. Most management workflows remain unfinished; no scaffolding is counted as completion.
 - Continue feature-sized vertical slices, build/test/fix, update these docs, commit and immediately proceed. Final completion requires an audit against the full original prompt. External live checks must not block independent work.
 - Account grouping, manual subscription state and character economic/Track assignments are next. Reference account/character controllers were inspected read-only; local management will use separate tables rather than adding mutable planning fields to factual EVE identity.
+
+## Accounts and character planning
+
+- Added separate `ManagedAccount`, `CharacterPlan` and `CharacterTrack` tables with restrictive foreign keys and revision checks. EVE identity/tokens remain in their original table.
+- Account creation/editing includes explicit Unknown/Alpha/Omega and notes. Character detail supports account selection, user-defined economic assignment, notes and multiple Track links. Character lists display names/subscription/assignment; Track details link back to assigned characters.
+- Reference account/character controllers informed semantics; no credential/account inference, subscription API claims or role derivation from skills.
+- Backend tests cover persistence, multi-Track removal, invalid references, stale revisions and credential preservation. Re-authorisation and refresh tests now include the new local management records.
+- No hard-delete of account groups: keeping identities avoids accidental loss of assignments. Groups can be renamed and characters can be unassigned.

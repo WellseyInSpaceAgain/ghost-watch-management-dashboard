@@ -1,3 +1,4 @@
+import { CharacterPlan } from './character-plan';
 import { EvePermissions } from './eve-permissions';
 import { InventoryData, InventoryView } from './inventory-view';
 import { Component, DestroyRef, inject, signal } from '@angular/core';
@@ -22,7 +23,7 @@ interface CharacterData {
 
 @Component({
   selector: 'app-character-data',
-  imports: [DatePipe, DecimalPipe, JsonPipe, RouterLink, MatButtonModule, InventoryView],
+  imports: [DatePipe, DecimalPipe, JsonPipe, RouterLink, MatButtonModule, InventoryView, CharacterPlan],
   template: `
     <a routerLink="/characters" class="back-link">← Characters</a>
     <p class="eyebrow">EVE DATA / CHARACTER</p>
@@ -34,6 +35,7 @@ interface CharacterData {
       <p role="status">Refresh: {{ current.progress.state }} @if (current.progress.section) { · {{ label(current.progress.section) }} }</p>
       @if (current.progress.error) { <p class="error" role="alert">{{ current.progress.error }}</p> }
       @if (current.progress.state === 'partial') { <p class="notice">Some sections could not be refreshed, or names and categories are incomplete. Check errors, warnings and last successful update times below.</p> }
+      <app-character-plan [characterId]="current.character.characterId" />
       <section class="panel" aria-labelledby="permissions-title"><h2 id="permissions-title">ESI Permissions</h2>
         @if (current.permissions; as permissions) {
           @if (!permissions.scopesKnown) {

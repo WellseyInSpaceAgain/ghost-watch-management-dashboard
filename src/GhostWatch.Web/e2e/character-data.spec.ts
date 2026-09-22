@@ -1,5 +1,9 @@
 import { test, expect } from '@playwright/test';
 
+test.beforeEach(async ({ page }) => {
+  await page.route('**/api/management/characters/*', route => route.fulfill({ json: { accountId: null, assignment: '', notes: '', revision: 0, tracks: [] } }));
+});
+
 test('refresh shows progress and retains previous wallet on partial failure', async ({ page }) => {
   let refreshed = false;
   let requestedHeader: string | undefined;

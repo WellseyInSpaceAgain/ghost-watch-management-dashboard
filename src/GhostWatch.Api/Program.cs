@@ -1,4 +1,5 @@
 using GhostWatch.Api.Data;
+using GhostWatch.Api.Management;
 using GhostWatch.Api.Eve.Inventory;
 using GhostWatch.Api.Eve.Esi;
 using GhostWatch.Api.Eve.Auth;
@@ -67,13 +68,16 @@ app.UseDefaultFiles();
 app.UseStaticFiles();
 app.MapGet("/api/health", () => Results.Ok(new { application = "Ghost Watch Management Dashboard", status = "ok" }));
 app.MapTracks();
+app.MapCharacterManagement();
 app.MapEveData();
 app.MapControllers();
 app.MapGet("/api/eve/characters", async (GhostWatchDbContext db, RefreshQueue queue, CancellationToken ct) =>
 {
     var characters = await db.EveCharacters.AsNoTracking().OrderBy(x => x.CharacterName)
         .Select(x => new { x.CharacterId, x.CharacterName, x.ConnectedAt, x.LastAuthenticatedAt, x.GrantedScopesJson }).ToListAsync(ct);
+    var plans = await db.CharacterPlans.AsNoTracking().Include(x => x.Account).ToDictionaryAsync(x => x.CharacterId, ct);
     return Results.Ok(characters.Select(x => new { x.CharacterId, x.CharacterName, x.ConnectedAt, x.LastAuthenticatedAt,
+        accountName = plans.GetValueOrDefault(x.CharacterId)?.Account?.Name, subscription = plans.GetValueOrDefault(x.CharacterId)?.Account?.Subscription ?? "Unknown", assignment = plans.GetValueOrDefault(x.CharacterId)?.Assignment,
         permissions = EveScopes.Permissions(x.GrantedScopesJson), progress = queue.Status(x.CharacterId) }).ToArray());
 });
 app.MapFallback("/api/{**path}", () => Results.NotFound());

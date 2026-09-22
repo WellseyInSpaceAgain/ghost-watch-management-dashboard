@@ -42,3 +42,11 @@ tbody tr:hover { background: #15232a; }
 .metadata { font-size: 11px; }
 .visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
 @media (max-width: 600px) { .form-row { grid-template-columns: 1fr; gap: 0; } .list-controls { align-items: flex-start; flex-direction: column; } }
+
+.compact-form { max-width:880px; display:grid; gap:16px; }
+.compact-form label { display:grid; gap:6px; color:#b3c2ca; }
+.compact-form input, .compact-form textarea, .compact-form select { width:100%; background:#17232b; color:#dce6eb; border:1px solid #445b68; border-radius:4px; padding:9px; min-width:0; }
+.compact-form fieldset { border:1px solid #445b68; min-width:0; }
+.compact-form .check { display:flex; align-items:center; gap:10px; padding:6px; }
+.compact-form .check input { width:auto; }
+.compact-form button { justify-self:start; }

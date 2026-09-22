@@ -11,10 +11,10 @@ States: **done** = end-to-end implemented and automated verification recorded; *
 | 3 | Refresh characters through ESI | done | Queue, retries, scope checks, retained facts; integration tests |
 | 4 | Current economic ESI data | pending | Wallet, jobs, assets, blueprints exist; PI, standings, LP and readable skill/order views remain |
 | 5 | Trained/currently usable capability | pending | Capacity limits done; broader economic foundations remain |
-| 6 | Manual account grouping | in progress | Next vertical slice |
-| 7 | Account Alpha/Omega state | in progress | Next vertical slice |
+| 6 | Manual account grouping | done | Account editor, per-character group selection; API/browser coverage |
+| 7 | Account Alpha/Omega state | done | Explicit Unknown/Alpha/Omega, manual account setting |
 | 8 | Create Economy Tracks | done | CRUD, archive/restore, revision protection, browser tests |
-| 9 | Link Characters to Tracks | in progress | Includes separate local economic assignment |
+| 9 | Link Characters to Tracks | done | Multi-Track links, economic assignment and planning notes; linked-character view on Track |
 | 10 | Create Playbooks | pending | |
 | 11 | Markdown Playbook editing | pending | Include revision retention |
 | 12 | Arbitrary Records/notes | pending | Typed metadata, flexible Markdown and links |

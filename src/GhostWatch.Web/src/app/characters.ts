@@ -11,7 +11,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 interface EveConfig { configured: boolean; callbackUrl: string; scopes: string[]; }
 interface RefreshProgress { state: string; section: string | null; error: string | null; currentStep: number; totalSteps: number; }
-interface Character { characterId: number; characterName: string; connectedAt: string; lastAuthenticatedAt: string; progress?: RefreshProgress; permissions?: EvePermissions; }
+interface Character { accountName?: string; subscription?: string; assignment?: string; characterId: number; characterName: string; connectedAt: string; lastAuthenticatedAt: string; progress?: RefreshProgress; permissions?: EvePermissions; }
 
 @Component({
   selector: 'app-characters',
@@ -38,11 +38,12 @@ interface Character { characterId: number; characterName: string; connectedAt: s
         @if (progressError()) { <p class="error" role="alert">{{ progressError() }} <button mat-button (click)="pollCharacters()">Retry status</button></p> }
         @if (!characters().length) { <p>No characters connected yet.</p><p class="muted">EVE handles your login and character selection. Connect additional characters by repeating the login process.</p> }
         @else {
-          <div class="table-wrap"><table><caption class="visually-hidden">Authenticated EVE characters</caption><thead><tr><th>Character</th><th>ESI permissions</th><th>Refresh progress</th><th>EVE ID</th><th>Last authenticated</th></tr></thead>
+          <div class="table-wrap"><table><caption class="visually-hidden">Authenticated EVE characters</caption><thead><tr><th>Character</th><th>Account / assignment</th><th>ESI permissions</th><th>Refresh progress</th><th>EVE ID</th><th>Last authenticated</th></tr></thead>
           <tbody>@for (character of characters(); track character.characterId) {
             <tr><td><span class="character-name">
               @if (!progressError() && isRefreshing(character)) { <mat-spinner [diameter]="16" [strokeWidth]="2" [attr.aria-label]="'Refreshing ' + character.characterName" /> }
               <a [routerLink]="['/characters', character.characterId]">{{ character.characterName }}</a></span></td>
+              <td>{{ character.accountName || 'Ungrouped' }} · {{ character.subscription || 'Unknown' }}<small>{{ character.assignment || 'No economic assignment' }}</small></td>
               <td><span tabindex="0" class="permission-badge" [class.permission-warning]="!character.permissions?.hasAllRequiredScopes"
                 [matTooltip]="permissionTooltip(character)">{{ character.permissions?.hasAllRequiredScopes ? '✓ Permissions OK' : character.permissions?.scopesKnown ? '⚠ Missing permissions' : '⚠ Permissions not checked' }}</span></td>
               <td><span [class.muted]="!isRefreshing(character)">{{ progressLabel(character) }}</span>
@@ -53,7 +54,7 @@ interface Character { characterId: number; characterName: string; connectedAt: s
           <p class="muted" style="margin-top:16px">Use the login button again to add another character or reconnect an existing one. Select the character on EVE's login page.</p>
         }
       </section>
-      <p class="muted">Open a character to refresh wallets, skills, skill queues, market orders, industry jobs, assets and blueprints. Accounts and economic assignments are not available yet.</p>
+      <p class="muted">Open a character to refresh wallets, skills, skill queues, market orders, industry jobs, assets and blueprints. Account grouping, subscription and economic assignments are managed locally.</p>
       <details class="panel"><summary>Requested EVE permissions</summary><p class="muted">These permissions cover character economics in the project brief. Corporation access is not requested.</p><ul>
         @for (scope of config()?.scopes; track scope) { <li><code>{{ scope }}</code></li> }
       </ul></details>

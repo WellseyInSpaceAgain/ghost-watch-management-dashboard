@@ -105,6 +105,8 @@ public class EsiTests
         db.EveCharacters.Add(new() { CharacterId = 7, GrantedScopesJson = EveScopes.Store(EveScopes.Required), CharacterName = "Test pilot" });
         var track = new EconomyTrack { Name = "Local strategy", Notes = "Do not overwrite", Status = "Active" };
         db.EconomyTracks.Add(track); await db.SaveChangesAsync();
+        db.CharacterPlans.Add(new() { CharacterId = 7, Assignment = "Industrial reserve", Notes = "Keep management separate" });
+        await db.SaveChangesAsync();
         var refresh = scope.ServiceProvider.GetRequiredService<CharacterRefresh>();
         Assert.True(await refresh.Refresh(7, _ => { }, default));
         var wallet = await db.EveSections.SingleAsync(x => x.Name == "wallet");
@@ -130,6 +132,7 @@ public class EsiTests
         Assert.Equal(6, result!["capacity"]!["trained"]!["manufacturingJobs"]!.GetValue<int>());
         Assert.Equal(3, result["capacity"]!["active"]!["manufacturingJobs"]!.GetValue<int>());
         Assert.DoesNotContain("test-token", result.ToJsonString());
+        Assert.Equal("Industrial reserve", (await db.CharacterPlans.SingleAsync()).Assignment);
         Assert.Equal(HttpStatusCode.Forbidden, (await browser.PostAsync("/api/eve/characters/7/refresh", null)).StatusCode);
     }
 
