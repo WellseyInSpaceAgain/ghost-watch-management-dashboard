@@ -1,0 +1,28 @@
+import {Component,inject,input,signal,effect} from '@angular/core';
+import {HttpClient} from '@angular/common/http';
+import {FormsModule} from '@angular/forms';
+import {RouterLink} from '@angular/router';
+import {DatePipe} from '@angular/common';
+import {MatButtonModule} from '@angular/material/button';
+import {MetricDefinition,MetricPipe,TrackSummary} from './economic-reporting';
+import {requestError} from './tracks/track-api';
+interface Operations {summary:TrackSummary;catalog:MetricDefinition[];runs:{id:string;name:string;status:string;purpose:string;updatedAt:string;financials:{actualProfit:number|null;expectedProfit:number|null;committed:number|null}}[];playbooks:{id:string;name:string;status:string}[];records:{id:string;title:string;recordType:string;updatedAt:string}[];objectives:{id:string;name:string;type:string;status:string;manualProgress:number|null}[];}
+@Component({selector:'app-track-operations',imports:[FormsModule,RouterLink,DatePipe,MatButtonModule,MetricPipe],template:`
+@if(error()){<p class="error" role="alert">{{error()}} <button mat-button (click)="load()">Reload operations</button></p>}
+@if(data();as data){
+<section class="metrics" aria-label="Selected Track KPIs">@for(key of data.summary.selectedKpis;track key){<article class="metric"><h2>{{definition(key)?.label}}</h2><strong>{{data.summary.metrics[key]|metric:definition(key)?.unit}}</strong></article>}</section>
+<section class="panel"><details><summary>Select Track KPIs (up to six)</summary><div class="compact-form">@for(metric of data.catalog;track metric.key){<label class="check"><input type="checkbox" [ngModel]="selected.includes(metric.key)" (ngModelChange)="toggle(metric.key,$event)">{{metric.label}}</label>}<button mat-stroked-button (click)="saveKpis()" [disabled]="selected.length>6||busy()">Save selected KPIs</button>@if(saved()){<p role="status">Selected KPIs saved.</p>}</div></details></section>
+<section class="panel"><h2>Capital and performance</h2><p>Default pool: @if(data.summary.poolName){<a routerLink="/capital" [queryParams]="{edit:data.summary.poolId}">{{data.summary.poolName}}</a>}@else{None}</p><p>Pool allocated: {{data.summary.metrics['capitalAllocated']|metric}} · Pool available: {{data.summary.metrics['capitalAvailable']|metric}}</p><p>Track committed: {{data.summary.metrics['capitalCommitted']|metric}} · Lifetime Track P/L: {{data.summary.metrics['lifetimeProfit']|metric}}</p><p class="muted">Pool availability includes every Run using that pool. Track commitments include this Track's Runs across all pools. Blank actual financial values stay unknown.</p></section>
+<section class="panel"><div class="section-heading"><h2>Execution</h2><a mat-stroked-button routerLink="/runs/new" [queryParams]="{trackId:trackId()}">Create Run for Track</a></div><div class="table-wrap"><table><thead><tr><th>Run</th><th>Status</th><th>Expected P/L</th><th>Actual P/L</th><th>Committed</th></tr></thead><tbody>@for(run of data.runs;track run.id){<tr><td><a [routerLink]="['/runs',run.id]">{{run.name}}</a></td><td>{{run.status}}</td><td>{{run.financials.expectedProfit|metric}}</td><td>{{run.financials.actualProfit|metric}}</td><td>{{run.financials.committed|metric}}</td></tr>}@empty{<tr><td colspan="5">No Runs linked to this Track yet.</td></tr>}</tbody></table></div><p><a routerLink="/industry-jobs" [queryParams]="{trackId:trackId()}">Relevant and unassociated industry jobs</a></p></section>
+<section class="panel"><h2>Objectives / Gates</h2><ul>@for(objective of data.objectives;track objective.id){<li><a routerLink="/objectives" [queryParams]="{edit:objective.id}">{{objective.name}}</a> · {{objective.type}} · {{objective.status}} · {{objective.manualProgress|metric:'%'}}</li>}@empty{<li>No linked objectives yet.</li>}</ul><a routerLink="/objectives" [queryParams]="{trackId:trackId()}">Create Objective / Gate</a></section>
+<section class="panel"><h2>Linked Playbooks</h2><ul>@for(book of data.playbooks;track book.id){<li><a routerLink="/playbooks" [queryParams]="{edit:book.id}">{{book.name}}</a> · {{book.status}}</li>}@empty{<li>No linked Playbooks yet.</li>}</ul><a routerLink="/playbooks">Manage Playbooks</a></section>
+<section class="panel"><h2>Recent Records / decisions / findings</h2><ul>@for(record of data.records;track record.id){<li><a routerLink="/records" [queryParams]="{edit:record.id}">{{record.title}}</a> · {{record.recordType}} · {{record.updatedAt|date:'mediumDate'}}</li>}@empty{<li>No linked Records yet.</li>}</ul><a routerLink="/records">Manage Records</a></section>
+}`})
+export class TrackOperations {
+ readonly trackId=input.required<string>();readonly refresh=input(0);private readonly http=inject(HttpClient);readonly data=signal<Operations|null>(null);readonly error=signal('');readonly saved=signal(false);readonly busy=signal(false);selected:string[]=[];
+ constructor(){effect(()=>{this.trackId();this.refresh();this.load();});}
+ load(){this.http.get<Operations>(`/api/economics/tracks/${this.trackId()}/operations`).subscribe({next:data=>{this.selected=[...data.summary.selectedKpis];this.data.set(data);this.error.set('');},error:e=>this.error.set(requestError(e))});}
+ definition(key:string){return this.data()?.catalog.find(x=>x.key===key);}
+ toggle(key:string,value:boolean){this.selected=value?[...this.selected,key]:this.selected.filter(x=>x!==key);this.saved.set(false);}
+ saveKpis(){this.busy.set(true);this.http.put(`/api/economics/tracks/${this.trackId()}/kpis`,{keys:this.selected,revision:this.data()!.summary.kpiRevision}).subscribe({next:()=>{this.saved.set(true);this.busy.set(false);this.load();},error:e=>{this.error.set(requestError(e));this.busy.set(false);}});}
+}

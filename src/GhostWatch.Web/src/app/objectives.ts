@@ -27,7 +27,7 @@ export interface Objective { id:string;name:string;description:string;trackId:st
 export class Objectives {
   private readonly http=inject(HttpClient);private readonly requested=inject(ActivatedRoute).snapshot.queryParamMap.get('edit');readonly rows=signal<Objective[]>([]);readonly tracks=signal<Track[]>([]);readonly error=signal('');readonly busy=signal(false);readonly saved=signal(false);readonly statuses=['Planning','Active','Completed','Cancelled'];
   draft:Objective={id:'',name:'',description:'',trackId:null,type:'Objective',status:'Active',targetDate:null,manualProgress:null,conditions:[],notes:'',revision:0};private initial=true;
-  constructor(){this.load();this.http.get<Track[]>('/api/economics/tracks?includeArchived=true').subscribe({next:rows=>this.tracks.set(rows),error:error=>this.error.set(requestError(error))});}
+  constructor(){this.draft.trackId=inject(ActivatedRoute).snapshot.queryParamMap.get('trackId');this.load();this.http.get<Track[]>('/api/economics/tracks?includeArchived=true').subscribe({next:rows=>this.tracks.set(rows),error:error=>this.error.set(requestError(error))});}
   load(){this.http.get<Objective[]>('/api/economics/objectives').subscribe({next:rows=>{this.rows.set(rows);this.error.set('');if(this.initial&&this.requested){const found=rows.find(x=>x.id===this.requested);if(found)this.edit(found);}this.initial=false;},error:error=>this.error.set(requestError(error))});}
   reset(){this.draft={id:'',name:'',description:'',trackId:null,type:'Objective',status:'Active',targetDate:null,manualProgress:null,conditions:[],notes:'',revision:0};this.saved.set(false);}
   edit(row:Objective){this.draft=structuredClone(row);this.saved.set(false);}

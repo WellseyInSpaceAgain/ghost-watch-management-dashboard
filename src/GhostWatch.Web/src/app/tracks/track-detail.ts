@@ -1,3 +1,4 @@
+import { TrackOperations } from '../track-operations';
 import { TrackStrategy } from '../track-strategy';
 import { HttpClient } from '@angular/common/http';
 import { Pool } from '../capital';
@@ -15,7 +16,7 @@ import { Track, TrackApi, TrackDraft, TrackOptions, requestError } from './track
 
 @Component({
   selector: 'app-track-detail',
-  imports: [DatePipe, FormsModule, RouterLink, MatButtonModule, MatFormFieldModule, MatInputModule, MatSelectModule, TrackCharacters, TrackStrategy],
+  imports: [DatePipe, FormsModule, RouterLink, MatButtonModule, MatFormFieldModule, MatInputModule, MatSelectModule, TrackCharacters, TrackStrategy, TrackOperations],
   template: `
     <a routerLink="/tracks" class="back-link">← Economy Tracks</a>
     <p class="eyebrow">ECONOMICS / {{ id ? 'TRACK DETAIL' : 'NEW TRACK' }}</p>
@@ -25,6 +26,7 @@ import { Track, TrackApi, TrackDraft, TrackOptions, requestError } from './track
     @if (loading()) { <p role="status">Loading Track…</p> }
     @else if (ready()) {
       @if (track()?.archivedAt) { <p class="notice">Archived on {{ track()!.archivedAt | date:'mediumDate' }}. History is retained. Choose another status to restore this Track.</p> }
+      @if(track();as current){<app-track-operations [trackId]="current.id" [refresh]="current.revision+operationsRefresh()" />}
       <form #form="ngForm" (ngSubmit)="save(form)" class="panel track-form">
         <div class="section-heading"><h2>Programme details</h2><span class="tag">MANUAL DATA</span></div>
         <mat-form-field appearance="outline" class="full"><mat-label>Name</mat-label>
@@ -52,12 +54,14 @@ import { Track, TrackApi, TrackDraft, TrackOptions, requestError } from './track
           @if (saved()) { <span role="status" class="muted">Changes saved.</span> }
         </div>
       </form>
-      @if (track(); as current) { <app-track-characters [trackId]="current.id" /><app-track-strategy [trackId]="current.id" /><p class="muted metadata">Created {{ current.createdAt | date:'medium' }} · Updated {{ current.updatedAt | date:'medium' }} · Revision {{ current.revision }}</p> }
+      @if (track(); as current) { <app-track-characters [trackId]="current.id" /><app-track-strategy [trackId]="current.id" (changed)="refreshOperations()" /><p class="muted metadata">Created {{ current.createdAt | date:'medium' }} · Updated {{ current.updatedAt | date:'medium' }} · Revision {{ current.revision }}</p> }
     } @else { <button mat-stroked-button (click)="load()">Retry loading</button> }
   `,
 })
 export class TrackDetail {
   private readonly http = inject(HttpClient);
+  readonly operationsRefresh=signal(0);
+  refreshOperations(){this.operationsRefresh.update(x=>x+1);}
   readonly pools = signal<Pool[]>([]);
   private readonly api = inject(TrackApi);
   private readonly router = inject(Router);

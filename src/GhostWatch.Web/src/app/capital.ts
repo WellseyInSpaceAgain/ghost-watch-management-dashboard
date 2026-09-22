@@ -1,3 +1,4 @@
+import { ActivatedRoute } from '@angular/router';
 import { Component, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
@@ -43,11 +44,12 @@ interface CapitalState { metrics:Record<string, {committed:number|null;available
   }
 `})
 export class Capital {
+  private readonly requested=inject(ActivatedRoute).snapshot.queryParamMap.get('edit');private initial=true;
   private readonly http = inject(HttpClient); readonly state = signal<CapitalState | null>(null); readonly error = signal(''); readonly message = signal(''); readonly busy = signal(false);
   draft = { id:'', name:'', description:'', role:'Other', targetCapital:null as number | null, archived:false, revision:0 };
   movement = { fromPoolId:null as string | null, toPoolId:null as string | null, amount:null as number | null, reason:'', notes:'' };
   constructor() { this.load(); }
-  load() { this.http.get<CapitalState>('/api/economics/capital').subscribe({next: result => { this.state.set(result); this.error.set(''); }, error: error => this.error.set(requestError(error))}); }
+  load() { this.http.get<CapitalState>('/api/economics/capital').subscribe({next: result => { this.state.set(result); this.error.set('');if(this.initial&&this.requested){const pool=result.pools.find(x=>x.id===this.requested);if(pool)this.edit(pool);}this.initial=false; }, error: error => this.error.set(requestError(error))}); }
   reset() { this.draft = { id:'', name:'', description:'', role:'Other', targetCapital:null, archived:false, revision:0 }; this.message.set(''); }
   edit(pool: Pool) { this.draft = {...pool, archived:!!pool.archivedAt}; this.message.set(''); }
   savePool() {

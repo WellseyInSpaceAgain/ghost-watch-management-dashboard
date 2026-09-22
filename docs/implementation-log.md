@@ -64,3 +64,11 @@
 - Coverage uses the active Ghost Watch Treasury pool's conceptual allocation. Missing treasury yields unknown, recorded zero treasury yields zero coverage, and nonpositive package values are rejected. No reimbursement or pricing integration.
 - Verification: 75 backend tests, production frontend build and package create/edit/reload browser check pass.
 - User added `v1-economic-plan.md` as operating context. The original application specification remains the implementation acceptance baseline; the plan is retained as user-authored documentation.
+
+## Operational reporting and integration pass
+
+- Replaced dashboard placeholder metrics with recorded Core Capital, 30-day realised profit, Treasury and replacement coverage. Added financial Track rows, collected wallet/order state, deterministic Needs Attention and recent activity.
+- Track detail now connects selected KPIs, capital/performance, Runs, relevant industry jobs, Objectives/Gates and linked knowledge. Existing character assignments, metadata and manual strategy remain editable. New Run/Objective links prefill Track context; named pool links select the intended editor.
+- Central reporting preserves incomplete financial values. Default-pool allocation/availability are explicitly labelled because multiple Tracks may share a pool; programme totals sum pools directly. Detailed formulas and rule definitions are in `financial-metrics.md`.
+- Verification: 76 backend tests, production frontend build and all 21 browser tests pass, including navigation, narrow-screen layout, character refresh/scope handling and new operational workflows.
+- Isolated host Podman Compose build/start/deep-link/migration/persistence smoke test passes. Only the temporary smoke-test volume was removed; the user's runtime data and credentials were not inspected or changed.

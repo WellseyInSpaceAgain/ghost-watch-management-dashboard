@@ -30,7 +30,7 @@ States: **done** = end-to-end implemented and automated verification recorded; *
 | 22 | Expected financial results | done | Independent nullable input/other cost/revenue and calculated profit |
 | 23 | Actual financial results | done | Independent actuals, margin, durations and efficiency |
 | 24 | Run verdicts | done | R&D completion and successful verdict work without revenue |
-| 25 | Run/Track metrics | in progress | Run financials and manual T3 stages done; Track summaries and selected KPIs remain |
+| 25 | Run/Track metrics | done | Central aggregates, shared-pool semantics, selected Track KPIs and manual stages |
 | 26 | Replacement Packages | done | Manual estimates, notes, edit and atomic default selection |
 | 27 | Replacement coverage | done | Treasury-role allocation divided by package value; missing treasury stays unknown |
 | 28 | Manual Economic Snapshot | pending | Immutable stored values |
@@ -45,11 +45,11 @@ States: **done** = end-to-end implemented and automated verification recorded; *
 | 37 | Drag/drop chart ordering | pending | |
 | 38 | Persistent chart order | pending | |
 | 39 | Chart width | pending | Small/Medium/Wide |
-| 40 | Dashboard headline metrics | pending | |
-| 41 | Active Tracks | done | Overview table; financial columns await domain slices |
-| 42 | Deterministic Needs Attention | pending | |
+| 40 | Dashboard headline metrics | done | Four concrete metrics from recorded finance; explicit unknowns |
+| 41 | Active Tracks | done | Named programmes with allocation, commitments and 30-day P/L |
+| 42 | Deterministic Needs Attention | done | Documented small rule set, actionable named links |
 | 43 | Configurable charts | pending | Reusable renderer, line/bar/stacked/donut/KPI |
-| 44 | Operational Track detail | pending | Current page edits metadata only |
+| 44 | Operational Track detail | in progress | Financials/KPIs, Runs, relevant jobs, Objectives, knowledge, Characters/stages connected; chart area remains |
 | 45 | Preserve management through ESI refresh | in progress | Existing Track/notes safety tested; test new relationships as added |
 
 ## Additional accepted requests

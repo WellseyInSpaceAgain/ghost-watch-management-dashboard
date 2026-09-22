@@ -69,12 +69,13 @@ public static class RunEndpoints
         });
         app.MapGet("/api/eve/industry-jobs", Jobs);
     }
-    public static async Task<IResult> Jobs(Guid? runId, bool? unassociated, GhostWatchDbContext db, CancellationToken ct)
+    public static async Task<IResult> Jobs(Guid? runId, bool? unassociated, Guid? trackId, GhostWatchDbContext db, CancellationToken ct)
     {
         var jobs = await db.EveIndustryJobs.AsNoTracking().OrderByDescending(x => x.StartDate).ToListAsync(ct);
         var links = await db.RunJobs.AsNoTracking().Include(x => x.Run).ThenInclude(x => x.Track).ToListAsync(ct);
         var characters = await db.EveCharacters.AsNoTracking().ToDictionaryAsync(x => x.CharacterId, x => x.CharacterName, ct);
         var types = await db.PublicEveLookups.AsNoTracking().Where(x => x.Key.StartsWith("type:")).ToDictionaryAsync(x => x.Key, ct);
+        var trackCharacters = trackId is null ? [] : await db.CharacterTracks.Where(x => x.TrackId == trackId).Select(x => x.CharacterId).ToListAsync(ct);
         var result = jobs.Select(job =>
         {
             var link = links.Find(x => x.CharacterId == job.CharacterId && x.JobId == job.JobId);
@@ -83,7 +84,7 @@ public static class RunEndpoints
             return new { job.CharacterId, characterName = characters[job.CharacterId], job.JobId, job.ActivityId, job.ProductTypeId, job.BlueprintTypeId,
                 productName = product ?? $"Type {type} (name unavailable)", job.Runs, job.Status, job.StartDate, job.EndDate, job.LastSeenAt,
                 runId = link?.RunId, runName = link?.Run.Name, trackId = link?.Run.TrackId, trackName = link?.Run.Track.Name };
-        }).Where(x => (runId is null || x.runId == runId) && (unassociated != true || x.runId is null));
+        }).Where(x => (runId is null || x.runId == runId) && (unassociated != true || x.runId is null) && (trackId == null || x.trackId == trackId || x.runId == null && trackCharacters.Contains(x.CharacterId)));
         return Results.Ok(result);
     }
     private static object View(EconomicRun run) => new { run, trackName = run.Track.Name, capitalPoolName = run.CapitalPool?.Name, financials = RunMetrics.Calculate(run) };

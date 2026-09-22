@@ -53,6 +53,7 @@ export class RunDetail {
       this.playbooks.set(result.playbooks);this.options.set(result.options);this.tracks.set(result.tracks);this.pools.set(result.capital.pools);this.view.set(result.view);
       if(result.view)this.draft={...result.view.run};
       else if(this.route.snapshot.queryParamMap.has('jobId')){const job=result.jobs.find(x=>x.jobId===Number(this.route.snapshot.queryParamMap.get('jobId'))&&x.characterId===Number(this.route.snapshot.queryParamMap.get('characterId')));if(!job||job.runId){this.error.set('This ESI job is unavailable or already associated. Return to industry jobs.');return;}this.sourceJob.set(job);this.draft.name=`${job.productName} batch`.slice(0,120);this.draft.productName=job.productName;this.draft.productTypeId=job.productTypeId??job.blueprintTypeId;this.draft.startedAt=job.startDate;this.draft.runType=({1:'Manufacturing',3:'Research',4:'Research',5:'Research',8:'Invention',11:'Reaction'} as Record<number,string>)[job.activityId]??'Other';this.draft.manufacturingHours=Math.max(0,(Date.parse(job.endDate)-Date.parse(job.startDate))/3600000);this.draft.concurrentSlots=1;}
+      if(!this.id&&this.route.snapshot.queryParamMap.has('trackId')){this.draft.trackId=this.route.snapshot.queryParamMap.get('trackId')!;this.selectTrack();}
       this.ready.set(true);
     },error:error=>this.error.set(requestError(error))});
   }
