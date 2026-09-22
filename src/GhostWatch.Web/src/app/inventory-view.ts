@@ -5,8 +5,8 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatPaginatorModule } from '@angular/material/paginator';
 
-interface InventoryRow { typeId: number; name: string; category: string; availability: string; quantity: number; itemId?: number; locationId?: number; locationFlag?: string; }
-interface BlueprintRow { itemId: number; typeId: number; name: string; kind: string; quantity: number; materialEfficiency: number; timeEfficiency: number; runsRemaining: number | null; locationId: number; locationFlag: string; }
+interface InventoryRow { typeId: number; name: string; category: string; availability: string; quantity: number; itemId?: number; locationId?: number; locationFlag?: string; locationName?: string; }
+interface BlueprintRow { itemId: number; typeId: number; name: string; kind: string; quantity: number; materialEfficiency: number; timeEfficiency: number; runsRemaining: number | null; locationId: number; locationFlag: string; locationName: string; }
 export interface InventoryData { assets: InventoryRow[]; stock: InventoryRow[]; blueprints: BlueprintRow[]; }
 interface SectionStatus { name: string; updatedAt: string | null; error: string | null; warning?: string | null; }
 
@@ -25,7 +25,7 @@ interface SectionStatus { name: string; updatedAt: string | null; error: string 
       @else if (!inventory()?.assets?.length) { <p>No assets returned by EVE.</p> }
       @else {
         <div class="inventory-filters">
-          <mat-form-field appearance="outline"><mat-label>Search assets</mat-label><input matInput #assetSearch (input)="search.set(assetSearch.value); assetPage.set(0)" placeholder="Name, type or location ID"></mat-form-field>
+          <mat-form-field appearance="outline"><mat-label>Search assets</mat-label><input matInput #assetSearch (input)="search.set(assetSearch.value); assetPage.set(0)" placeholder="Item or location name, or ID"></mat-form-field>
           <mat-form-field appearance="outline"><mat-label>Availability</mat-label><mat-select [value]="availability()" (selectionChange)="availability.set($event.value); assetPage.set(0)">
             <mat-option value="">All availability</mat-option><mat-option value="Available stock">Available stock</mat-option><mat-option value="Fitted / contained assets">Fitted / contained assets</mat-option><mat-option value="Availability unknown">Availability unknown</mat-option>
           </mat-select></mat-form-field>
@@ -37,12 +37,12 @@ interface SectionStatus { name: string; updatedAt: string | null; error: string 
         <div class="table-wrap"><table><caption class="visually-hidden">Character assets</caption><thead><tr><th>Item</th><th>Category</th><th>Quantity</th><th>Availability</th>@if (mode() === 'assets') { <th>Location</th> }</tr></thead><tbody>
         @for (row of visibleAssets(); track $index) {
           <tr><td>{{ row.name }}<small>Type {{ row.typeId }} @if (row.itemId) { · Item {{ row.itemId }} }</small></td><td>{{ row.category }}</td><td>{{ row.quantity | number }}</td><td>{{ row.availability }}</td>
-            @if (mode() === 'assets') { <td>{{ row.locationId }}<small>{{ row.locationFlag }}</small></td> }</tr>
+            @if (mode() === 'assets') { <td>{{ row.locationName || 'Location name unavailable' }}<small>ID {{ row.locationId }} · {{ row.locationFlag }}</small></td> }</tr>
         } @empty { <tr><td colspan="5">No assets match these filters.</td></tr> }
         </tbody></table></div>
         <mat-paginator aria-label="Asset pages" [length]="filteredAssets().length" [pageSize]="25" [pageIndex]="assetPageIndex()" (page)="assetPage.set($event.pageIndex)" />
       }
-      <p class="muted">Available stock is loose hangar inventory. Fitted or contained items are kept separate; other locations remain unknown. This does not reserve stock or verify access. Switch to Item locations to inspect location IDs.</p>
+      <p class="muted">Available stock is loose hangar inventory. Fitted or contained items are kept separate; other locations remain unknown. This does not reserve stock or verify access. Switch to Item locations to inspect named locations.</p>
     </section>
     <section class="panel" aria-labelledby="blueprints-title">
       <h2 id="blueprints-title">Blueprints</h2>
@@ -55,12 +55,12 @@ interface SectionStatus { name: string; updatedAt: string | null; error: string 
       @else if (!inventory()?.blueprints?.length) { <p>No blueprints returned by EVE.</p> }
       @else {
         <div class="inventory-filters">
-          <mat-form-field appearance="outline"><mat-label>Search blueprints</mat-label><input matInput #blueprintSearch (input)="blueprintQuery.set(blueprintSearch.value); blueprintPage.set(0)" placeholder="Name or type ID"></mat-form-field>
+          <mat-form-field appearance="outline"><mat-label>Search blueprints</mat-label><input matInput #blueprintSearch (input)="blueprintQuery.set(blueprintSearch.value); blueprintPage.set(0)" placeholder="Blueprint or location name, or ID"></mat-form-field>
           <mat-form-field appearance="outline"><mat-label>Blueprint kind</mat-label><mat-select [value]="kind()" (selectionChange)="kind.set($event.value); blueprintPage.set(0)"><mat-option value="">Originals and copies</mat-option><mat-option value="Original">Originals</mat-option><mat-option value="Copy">Copies</mat-option></mat-select></mat-form-field>
         </div>
         <div class="table-wrap"><table><caption class="visually-hidden">Character blueprints</caption><thead><tr><th>Blueprint</th><th>Kind</th><th>Quantity</th><th>ME</th><th>TE</th><th>Runs remaining</th><th>Location</th></tr></thead><tbody>
         @for (row of visibleBlueprints(); track row.itemId) {
-          <tr><td>{{ row.name }}<small>Type {{ row.typeId }} · Item {{ row.itemId }}</small></td><td>{{ row.kind }}</td><td>{{ row.quantity | number }}</td><td>{{ row.materialEfficiency }}%</td><td>{{ row.timeEfficiency }}%</td><td>{{ row.kind === 'Original' ? 'Unlimited' : row.runsRemaining }}</td><td>{{ row.locationId }}<small>{{ row.locationFlag }}</small></td></tr>
+          <tr><td>{{ row.name }}<small>Type {{ row.typeId }} · Item {{ row.itemId }}</small></td><td>{{ row.kind }}</td><td>{{ row.quantity | number }}</td><td>{{ row.materialEfficiency }}%</td><td>{{ row.timeEfficiency }}%</td><td>{{ row.kind === 'Original' ? 'Unlimited' : row.runsRemaining }}</td><td>{{ row.locationName || 'Location name unavailable' }}<small>ID {{ row.locationId }} · {{ row.locationFlag }}</small></td></tr>
         } @empty { <tr><td colspan="7">No blueprints match these filters.</td></tr> }
         </tbody></table></div>
         <mat-paginator aria-label="Blueprint pages" [length]="filteredBlueprints().length" [pageSize]="25" [pageIndex]="blueprintPageIndex()" (page)="blueprintPage.set($event.pageIndex)" />
@@ -84,11 +84,11 @@ export class InventoryView {
   readonly categories = computed(() => [...new Set(this.inventory()?.assets.map(row => row.category) ?? [])].sort());
   readonly filteredAssets = computed(() => (this.inventory()?.[this.mode()] ?? []).filter(row =>
     (!this.availability() || row.availability === this.availability()) && (!this.category() || row.category === this.category()) &&
-    `${row.name} ${row.typeId} ${row.locationId ?? ''}`.toLowerCase().includes(this.search().toLowerCase().trim())));
+    `${row.name} ${row.typeId} ${row.locationId ?? ''} ${row.locationName ?? ''}`.toLowerCase().includes(this.search().toLowerCase().trim())));
   readonly assetPageIndex = computed(() => Math.min(this.assetPage(), Math.max(0, Math.ceil(this.filteredAssets().length / 25) - 1)));
   readonly visibleAssets = computed(() => this.filteredAssets().slice(this.assetPageIndex() * 25, (this.assetPageIndex() + 1) * 25));
   readonly filteredBlueprints = computed(() => (this.inventory()?.blueprints ?? []).filter(row =>
-    (!this.kind() || row.kind === this.kind()) && `${row.name} ${row.typeId}`.toLowerCase().includes(this.blueprintQuery().toLowerCase().trim())));
+    (!this.kind() || row.kind === this.kind()) && `${row.name} ${row.typeId} ${row.locationName} ${row.locationId}`.toLowerCase().includes(this.blueprintQuery().toLowerCase().trim())));
   readonly blueprintPageIndex = computed(() => Math.min(this.blueprintPage(), Math.max(0, Math.ceil(this.filteredBlueprints().length / 25) - 1)));
   readonly visibleBlueprints = computed(() => this.filteredBlueprints().slice(this.blueprintPageIndex() * 25, (this.blueprintPageIndex() + 1) * 25));
   status(name: string) { return this.sections().find(section => section.name === name); }

@@ -86,8 +86,9 @@ public class EsiTests
         var stage = 0;
         using var upstream = new Handler(request =>
         {
-            Assert.Equal("Bearer test-token-7", request.Headers.Authorization!.ToString());
             var path = request.RequestUri!.AbsolutePath;
+            if (path.StartsWith("/universe/")) return Json(path.Contains("types") ? "{\"name\":\"Test product\",\"group_id\":18}" : "{\"name\":\"Mineral\",\"category_id\":4}");
+            Assert.Equal("Bearer test-token-7", request.Headers.Authorization!.ToString());
             if (path.EndsWith("wallet")) return stage == 1 ? new(HttpStatusCode.Forbidden) : Json(stage == 0 ? "123456.78" : "200000");
             if (path.EndsWith("skills")) return Json("{\"skills\":[{\"skill_id\":3387,\"trained_skill_level\":5,\"active_skill_level\":2}],\"total_sp\":1234}");
             if (path.EndsWith("jobs")) return Json(stage == 3 ? "[]" : stage == 2 ? "[{\"job_id\":42}]" : "[{\"job_id\":42,\"activity_id\":1,\"blueprint_type_id\":123,\"product_type_id\":456,\"runs\":10,\"status\":\"" + (stage == 0 ? "active" : "delivered") + "\",\"start_date\":\"2026-09-01T00:00:00Z\",\"end_date\":\"2026-09-02T00:00:00Z\"}]");
@@ -177,6 +178,11 @@ public class EsiTests
             Assert.Equal("complete", result["progress"]!["state"]!.GetValue<string>());
             var wallet = result["sections"]!.AsArray().Single(x => x!["name"]!.GetValue<string>() == "wallet")!;
             Assert.Equal(id * 100, wallet["data"]!.GetValue<int>());
+            var list = (await browser.GetFromJsonAsync<JsonArray>("/api/eve/characters", deadline.Token))!;
+            var listed = list.Single(x => x!["characterId"]!.GetValue<int>() == id)!;
+            Assert.Equal("complete", listed["progress"]!["state"]!.GetValue<string>());
+            Assert.Equal(CharacterRefresh.Sections.Length, listed["progress"]!["currentStep"]!.GetValue<int>());
+            Assert.Equal(CharacterRefresh.Sections.Length, listed["progress"]!["totalSteps"]!.GetValue<int>());
         }
     }
 

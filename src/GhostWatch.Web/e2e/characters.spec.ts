@@ -46,3 +46,40 @@ test('refresh all queues every character and reports existing refreshes and fail
   expect(requested.sort()).toEqual(['1', '2', '3']);
   await expect(button).toBeEnabled();
 });
+
+test('character progress polls through queue stages and removes completed spinners', async ({ page }) => {
+  let stage = 0;
+  let requests = 0;
+  await page.route('**/api/auth/eve/config', route => route.fulfill({ json: { configured: true, callbackUrl: '', scopes: [] } }));
+  await page.route('**/api/eve/characters', route => {
+    requests++;
+    return route.fulfill({ json: [1, 2].map(id => ({
+      characterId: id, characterName: `Progress pilot ${id}`, connectedAt: '2026-09-22T00:00:00Z', lastAuthenticatedAt: '2026-09-22T00:00:00Z',
+      progress: id === 1
+        ? { state: stage === 0 ? 'running' : 'complete', section: stage === 0 ? 'assets' : null, currentStep: stage === 0 ? 6 : 7, totalSteps: 7, error: null }
+        : { state: stage === 0 ? 'queued' : stage === 1 ? 'running' : 'partial', section: stage === 1 ? 'blueprints' : null, currentStep: stage === 0 ? 0 : 7, totalSteps: 7, error: null },
+    })) });
+  });
+  await page.goto('/characters');
+  const first = page.getByRole('row').filter({ hasText: 'Progress pilot 1' });
+  const second = page.getByRole('row').filter({ hasText: 'Progress pilot 2' });
+  await expect(first.getByRole('progressbar')).toBeVisible();
+  await expect(first).toContainText('Assets');
+  await expect(first).toContainText('6/7 stages');
+  await expect(second).toContainText('Queued');
+  await expect(second).toContainText('0/7 stages');
+  stage = 1;
+  await expect(first).toContainText('Updated');
+  await expect(first.getByRole('progressbar')).toHaveCount(0);
+  await expect(second).toContainText('Blueprints');
+  await expect(second.getByRole('progressbar')).toBeVisible();
+  stage = 2;
+  await expect(second).toContainText('Needs attention');
+  await expect(second).toContainText('7/7 stages');
+  await expect(second.getByRole('progressbar')).toHaveCount(0);
+  await page.getByRole('link', { name: 'Overview', exact: true }).click();
+  const count = requests;
+  await page.clock.install();
+  await page.clock.fastForward(15000);
+  expect(requests).toBe(count);
+});

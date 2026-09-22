@@ -4,10 +4,10 @@ using System.Text.Json.Nodes;
 namespace GhostWatch.Api.Eve.Inventory;
 
 public sealed record AssetRow(long ItemId, long TypeId, string Name, string Category, long Quantity,
-    string Availability, long LocationId, string LocationFlag);
+    string Availability, long LocationId, string LocationFlag, string LocationName);
 public sealed record StockRow(long TypeId, string Name, string Category, string Availability, long Quantity);
 public sealed record BlueprintRow(long ItemId, long TypeId, string Name, string Kind, int Quantity,
-    int MaterialEfficiency, int TimeEfficiency, int? RunsRemaining, long LocationId, string LocationFlag);
+    int MaterialEfficiency, int TimeEfficiency, int? RunsRemaining, long LocationId, string LocationFlag, string LocationName);
 public sealed record InventoryView(List<AssetRow> Assets, List<StockRow> Stock, List<BlueprintRow> Blueprints);
 
 public static class InventoryProjection
@@ -35,7 +35,7 @@ public static class InventoryProjection
         }
     }
 
-    public static InventoryView Create(JsonNode? assets, JsonNode? blueprints, IReadOnlyDictionary<string, JsonNode> metadata)
+    public static InventoryView Create(JsonNode? assets, JsonNode? blueprints, IReadOnlyDictionary<string, JsonNode> metadata, IReadOnlyDictionary<long, string>? locations = null)
     {
         (string Name, string Category) Type(long id)
         {
@@ -46,12 +46,25 @@ public static class InventoryProjection
         }
         var rows = assets?.AsArray().OfType<JsonObject>().ToArray() ?? [];
         var itemIds = rows.Select(x => x["item_id"]!.GetValue<long>()).ToHashSet();
+        var parents = rows.ToDictionary(x => x["item_id"]!.GetValue<long>());
+        string Location(long id, HashSet<long>? seen = null)
+        {
+            seen ??= [];
+            if (seen.Count >= 32) return "Container location nesting limit reached";
+            if (!seen.Add(id)) return $"Container {id} (location cycle)";
+            if (parents.TryGetValue(id, out var parent))
+                return $"Inside {Type(parent["type_id"]!.GetValue<long>()).Name} · {Location(parent["location_id"]!.GetValue<long>(), seen)}";
+            if (locations?.TryGetValue(id, out var name) == true) return name;
+            return id >= 1000000000000 ? $"Unresolved structure or container {id}"
+                : id is >= 60000000 and < 64000000 ? $"Station {id} (name unavailable)"
+                : id is >= 30000000 and < 33000000 ? $"System {id} (name unavailable)" : $"Location {id} (name unavailable)";
+        }
         var assetRows = rows.Select(row =>
         {
             var id = row["type_id"]!.GetValue<long>(); var type = Type(id);
             return new AssetRow(row["item_id"]!.GetValue<long>(), id, type.Name, type.Category, row["quantity"]!.GetValue<long>(),
                 Availability(row["location_type"]!.GetValue<string>(), row["location_flag"]!.GetValue<string>(), itemIds.Contains(row["location_id"]!.GetValue<long>())),
-                row["location_id"]!.GetValue<long>(), row["location_flag"]!.GetValue<string>());
+                row["location_id"]!.GetValue<long>(), row["location_flag"]!.GetValue<string>(), Location(row["location_id"]!.GetValue<long>()));
         }).OrderBy(x => x.Name).ThenBy(x => x.ItemId).ToList();
         var stock = assetRows.GroupBy(x => new { x.TypeId, x.Name, x.Category, x.Availability })
             .Select(g => new StockRow(g.Key.TypeId, g.Key.Name, g.Key.Category, g.Key.Availability, g.Sum(x => x.Quantity)))
@@ -61,7 +74,7 @@ public static class InventoryProjection
             var id = row["type_id"]!.GetValue<long>(); var quantity = row["quantity"]!.GetValue<int>();
             return new BlueprintRow(row["item_id"]!.GetValue<long>(), id, Type(id).Name, quantity == -2 ? "Copy" : "Original",
                 quantity > 0 ? quantity : 1, row["material_efficiency"]!.GetValue<int>(), row["time_efficiency"]!.GetValue<int>(),
-                quantity == -2 ? row["runs"]!.GetValue<int>() : null, row["location_id"]!.GetValue<long>(), row["location_flag"]!.GetValue<string>());
+                quantity == -2 ? row["runs"]!.GetValue<int>() : null, row["location_id"]!.GetValue<long>(), row["location_flag"]!.GetValue<string>(), Location(row["location_id"]!.GetValue<long>()));
         }).OrderBy(x => x.Name).ThenBy(x => x.ItemId).ToList();
         return new(assetRows, stock, blueprintRows);
     }

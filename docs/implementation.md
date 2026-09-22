@@ -72,6 +72,13 @@ Next: continue PI/standings/loyalty points, account grouping and broader economi
 - Added `PublicEveLookup` for shared public type/group metadata and `EveSection.Warning` to distinguish incomplete metadata from failed data collection. Migration: `AddInventoryMetadata`.
 - Public metadata is cached for 30 days; missing names fall back to type IDs and missing categories remain unknown. No character token is sent to public lookups.
 - Adapted exact inventory categories and available/fitted-or-contained/unknown classification from the reference. Blueprint originals/copies, stacks, efficiencies and remaining copy runs are explicit.
-- Character inventory tables support search, availability/category/kind filters, stock vs item-location views and pagination. Location names and structure resolution remain deferred.
+- Character inventory tables support search, availability/category/kind filters, stock vs item-location views and pagination. Locations now resolve public station/system names, character-scoped structure names and container ancestry. Industry job products also resolve through public metadata.
 - 48 backend tests pass, including upgrading the previous schema while retaining character facts and Track notes. Six browser tests cover the UI; production builds and isolated Compose smoke verification pass.
 - Existing live character workflow was manually verified by the user. New live inventory refresh is not yet independently verified. Development/tests did not read credentials, copy authentication data or modify the normal application database.
+
+### Character refresh visibility and name sweep
+
+- Characters show queued/running spinners, named stage and x/7 stage position, and completion or partial-failure status. Polling stops on navigation and reports stale progress after network errors.
+- Location caches have a new additive migration. Public names are shared; private structure names are scoped to character, expire after an hour and are cleared on explicit access denial.
+- Add the structure-read scope to the SSO registration and reconnect existing characters for private structure names. Public names only require a refresh.
+- Reviewed all frontend views: Track and character labels already use names; inventory locations and job products now do too. Job/item identifiers and raw diagnostic JSON retain IDs intentionally.

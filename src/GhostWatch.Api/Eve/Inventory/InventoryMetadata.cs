@@ -26,7 +26,7 @@ public sealed class InventoryMetadata(GhostWatchDbContext db, EsiClient esi)
                 break;
             }
         }
-        return incomplete ? "Inventory collected, but some names or categories could not be refreshed. Known names and type IDs are shown. Try refreshing again later." : null;
+        return incomplete ? "Records collected, but some names or categories could not be refreshed. Known names and type IDs are shown. Try refreshing again later." : null;
     }
 
     private async Task<JsonNode> Cached(string key, string path, bool group, CancellationToken ct)

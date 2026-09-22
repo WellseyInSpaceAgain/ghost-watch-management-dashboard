@@ -8,7 +8,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 interface Section { name: string; attemptedAt: string | null; updatedAt: string | null; error: string | null; warning?: string | null; data: unknown; }
 interface Capacity { manufacturingJobs: number; researchJobs: number; reactionJobs: number; marketOrders: number; piColonies: number; }
-interface Job { jobId: number; activityId: number; productTypeId: number | null; blueprintTypeId: number; runs: number; status: string; startDate: string; endDate: string; lastSeenAt: string; }
+interface Job { productName: string; blueprintName: string; jobId: number; activityId: number; productTypeId: number | null; blueprintTypeId: number; runs: number; status: string; startDate: string; endDate: string; lastSeenAt: string; }
 interface CharacterData {
   character: { characterId: number; characterName: string };
   progress: { state: string; section: string | null; error: string | null };
@@ -47,13 +47,13 @@ interface CharacterData {
       <section class="panel"><h2>Industry jobs</h2>
         @if (current.jobs.length) {
           <div class="table-wrap"><table><thead><tr><th>Job</th><th>Activity</th><th>Product / Blueprint</th><th>Runs</th><th>Status</th><th>End</th><th>Last seen</th></tr></thead><tbody>
-          @for (job of current.jobs; track job.jobId) { <tr><td>{{ job.jobId }}</td><td>{{ activity(job.activityId) }}</td><td>Type {{ job.productTypeId ?? job.blueprintTypeId }}</td><td>{{ job.runs }}</td><td>{{ job.status }}</td><td>{{ job.endDate | date:'medium' }}</td><td>{{ job.lastSeenAt | date:'medium' }}</td></tr> }
+          @for (job of current.jobs; track job.jobId) { <tr><td>{{ job.jobId }}</td><td>{{ activity(job.activityId) }}</td><td>{{ job.productName || job.blueprintName || 'Product name unavailable' }}<small>Type {{ job.productTypeId ?? job.blueprintTypeId }}</small></td><td>{{ job.runs }}</td><td>{{ job.status }}</td><td>{{ job.endDate | date:'medium' }}</td><td>{{ job.lastSeenAt | date:'medium' }}</td></tr> }
           </tbody></table></div>
         } @else { <p class="muted">{{ section('industryJobs')?.updatedAt ? 'No industry jobs returned by EVE.' : 'Industry jobs have not been collected yet.' }}</p> }
-        <p class="muted" style="margin-top:16px">Jobs remain in local history when they leave EVE's response window. Status is last observed, not inferred. Product names and Run associations are not available yet.</p>
+        <p class="muted" style="margin-top:16px">Jobs remain in local history when they leave EVE's response window. Status is last observed, not inferred. Run associations are not available yet.</p>
       </section>
       <app-inventory-view [inventory]="current.inventory ?? null" [sections]="current.sections" />
-      <section class="panel"><h2>Data freshness and collected records</h2><p class="muted">Errors retain the last successful result. Expand a section to inspect its factual EVE records, including skill queue and market orders.</p>
+      <section class="panel"><h2>Data freshness and collected records</h2><p class="muted">Errors retain the last successful result. Expand a section to inspect raw EVE records, including skill queue and market orders. These diagnostic records retain the original EVE IDs.</p>
         @for (section of current.sections; track section.name) {
           <details class="data-section"><summary>{{ label(section.name) }} · {{ section.updatedAt ? 'Collected' : 'Not collected' }}{{ section.error ? ' · Refresh failed' : '' }}</summary>
             <p class="muted">Last successful update: {{ section.updatedAt ? (section.updatedAt | date:'medium') : 'Never' }} · Last attempt: {{ section.attemptedAt ? (section.attemptedAt | date:'medium') : 'Never' }}</p>

@@ -100,7 +100,7 @@ The smoke test creates and removes only its own temporary container and data vol
 
 ## Character refresh
 
-Open **Characters**, select a connected character, then choose **Refresh EVE data**. Refresh runs in a background queue; the page polls only while queued/running. Repeated requests for the same character are rejected while its refresh is pending. The Characters page also has **Refresh all characters**, which queues every connected character and reports already-running refreshes or individual failures.
+Open **Characters**, select a connected character, then choose **Refresh EVE data**. Refresh runs in a background queue; the page polls only while queued/running. Repeated requests for the same character are rejected while its refresh is pending. The Characters page also has **Refresh all characters**, which queues every connected character and reports already-running refreshes or individual failures. Each character shows a live spinner, current section and x/n stage position, followed by Updated, Needs attention or Failed. The count denotes stage position, not successful section count; progress is in memory and resets to Idle on an application restart.
 
 Wallet balance, trained/active skill capacity and industry jobs have dedicated views. Raw collected records expose skills, queue and market orders for inspection; name enrichment and richer record views follow later. Each section shows attempt/success timestamps and safe errors. Failed responses retain previous data; jobs retain stable identity and history when absent from later ESI responses. No refresh writes to Economy Tracks.
 
@@ -108,8 +108,8 @@ The character workflow has been manually verified by the user. This does not imp
 
 ## Assets and blueprints
 
-After updating the application with Compose, open a connected character and refresh. No additional scopes are requested beyond the original asset/blueprint scopes. The first inventory refresh may take longer while public type and group metadata is collected; it is cached for 30 days across characters.
+After updating the application with Compose, open a connected character and refresh. For private structure names, add `esi-universe.read_structures.v1` to your EVE application registration and reconnect each character; see [SSO setup](docs/eve-sso-setup.md#location-names-after-upgrading). The first inventory refresh may take longer while public type and group metadata is collected; it is cached for 30 days across characters.
 
 The Assets panel offers searchable stock summaries and individual item locations, availability/category filters, and 25-row pagination. Loose hangar stock is separated from fitted/contained assets; ambiguous locations remain unknown. Blueprint tables show originals/copies, stack quantity, material/time efficiency and copy runs remaining. Original runs display as Unlimited, and a copy with zero runs remains zero.
 
-All ESI pages must succeed and validate before the previous collection is replaced. A failed page retains the previous complete data and timestamp. Metadata failures instead save the complete raw inventory with a separate warning, using known names or explicit type-ID/unknown-category fallbacks. Location names, structure access and inventory reservation are not implemented; locations are shown as IDs and flags.
+All ESI pages must succeed and validate before the previous collection is replaced. A failed page retains the previous complete data and timestamp. Metadata failures instead save the complete raw inventory with a separate warning, using known names or explicit type-ID/unknown-category fallbacks. Locations show station/system names, accessible structure names, or container type and parent location. IDs and flags remain secondary references, with explicit fallbacks for unavailable names. Industry jobs display product/blueprint names. Structure names are cached per character; a resolved name does not establish inventory access or reserve stock.

@@ -78,6 +78,7 @@ public class InventoryTests
             if (path.StartsWith("/universe/"))
             {
                 Assert.Null(request.Headers.Authorization);
+                if (path.EndsWith("names")) return Json("[{\"id\":60000001,\"name\":\"Test station\"}]");
                 metadataCalls++;
                 if (failMetadata) return new(HttpStatusCode.NotFound);
                 return Json(path.Contains("types") ? "{\"name\":\"Tritanium\",\"group_id\":18}" : "{\"name\":\"Mineral\",\"category_id\":4}");
@@ -126,9 +127,62 @@ public class InventoryTests
         Assert.Null(assets.Error); Assert.NotNull(assets.Warning); Assert.Equal(oldAssets, assets.Json);
         var response = (await browser.GetFromJsonAsync<JsonObject>("/api/eve/characters/7/data"))!;
         Assert.Equal("Tritanium", response["inventory"]!["stock"]![0]!["name"]!.GetValue<string>());
+        Assert.Equal("Test station", response["inventory"]!["assets"]![0]!["locationName"]!.GetValue<string>());
         Assert.Equal("Minerals", response["inventory"]!["stock"]![0]!["category"]!.GetValue<string>());
         Assert.Equal(30, response["inventory"]!["stock"]![0]!["quantity"]!.GetValue<int>());
         Assert.Equal(2, response["inventory"]!["blueprints"]!.AsArray().Count);
+    }
+
+    [Fact]
+    public void Container_locations_resolve_parent_names_and_stop_cycles()
+    {
+        var rows = JsonNode.Parse($"[{Asset(1, 1)},{Asset(2, 1, 1)}]")!;
+        var view = InventoryProjection.Create(rows, null, new Dictionary<string, JsonNode>
+            { ["type:100"] = JsonNode.Parse("{\"name\":\"Raven\"}")! }, new Dictionary<long, string> { [60000001] = "Jita station" });
+        Assert.Equal("Jita station", view.Assets[0].LocationName);
+        Assert.Equal("Inside Raven · Jita station", view.Assets[1].LocationName);
+        var cycle = JsonNode.Parse($"[{Asset(1, 1, 2)},{Asset(2, 1, 1)}]")!;
+        Assert.Contains("location cycle", InventoryProjection.Create(cycle, null, new Dictionary<string, JsonNode>()).Assets[0].LocationName);
+    }
+
+    [Fact]
+    public async Task Structure_names_are_character_scoped_and_cleared_on_access_denial()
+    {
+        var denied = false;
+        var requests = 0;
+        using var upstream = new Handler(request =>
+        {
+            requests++;
+            Assert.EndsWith("universe/structures/1000000000001", request.RequestUri!.AbsolutePath);
+            return denied || request.Headers.Authorization!.Parameter == "denied" ? new(HttpStatusCode.Forbidden) : Json("{\"name\":\"Private factory\"}");
+        });
+        await using var app = new TestApplication(builder => builder.ConfigureTestServices(services =>
+            services.AddHttpClient<EsiClient>().ConfigurePrimaryHttpMessageHandler(() => upstream)));
+        using var browser = app.CreateClient();
+        using var scope = app.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<GhostWatchDbContext>();
+        var rows = JsonNode.Parse($"[{Asset(1, 1, 1000000000001)}]")!.AsArray();
+        foreach (var id in new long[] { 7, 8 })
+        {
+            db.EveCharacters.Add(new() { CharacterId = id, CharacterName = $"Pilot {id}" });
+            db.EveSections.Add(new() { CharacterId = id, Name = "assets", Json = rows.ToJsonString() });
+        }
+        await db.SaveChangesAsync();
+        var names = scope.ServiceProvider.GetRequiredService<LocationNames>();
+        Assert.Null(await names.Collect(7, "allowed", rows, rows, default));
+        Assert.NotNull(await names.Collect(8, "denied", rows, rows, default));
+        await db.SaveChangesAsync();
+        Assert.Null(await names.Collect(7, "allowed", rows, rows, default));
+        Assert.Equal(2, requests);
+        var first = (await browser.GetFromJsonAsync<JsonObject>("/api/eve/characters/7/data"))!;
+        var second = (await browser.GetFromJsonAsync<JsonObject>("/api/eve/characters/8/data"))!;
+        Assert.Equal("Private factory", first["inventory"]!["assets"]![0]!["locationName"]!.GetValue<string>());
+        Assert.DoesNotContain("Private factory", second.ToJsonString());
+        denied = true;
+        (await db.EveLocationNames.FindAsync(7L, 1000000000001L))!.ExpiresAt = DateTime.UtcNow.AddMinutes(-1);
+        Assert.NotNull(await names.Collect(7, "allowed", rows, rows, default));
+        await db.SaveChangesAsync();
+        Assert.Null((await db.EveLocationNames.FindAsync(7L, 1000000000001L))!.Name);
     }
 
     [Fact]

@@ -31,6 +31,7 @@ builder.Services.AddScoped<ICharacterAccessTokens>(services => services.GetRequi
 builder.Services.AddSingleton<EsiThrottle>();
 builder.Services.AddScoped<CharacterRefresh>();
 builder.Services.AddScoped<InventoryMetadata>();
+builder.Services.AddScoped<LocationNames>();
 builder.Services.AddSingleton<RefreshQueue>();
 builder.Services.AddHostedService(services => services.GetRequiredService<RefreshQueue>());
 builder.Services.AddHttpClient<EsiClient>(http =>
@@ -68,9 +69,13 @@ app.MapGet("/api/health", () => Results.Ok(new { application = "Ghost Watch Mana
 app.MapTracks();
 app.MapEveData();
 app.MapControllers();
-app.MapGet("/api/eve/characters", async (GhostWatchDbContext db, CancellationToken ct) =>
-    await db.EveCharacters.AsNoTracking().OrderBy(x => x.CharacterName)
-        .Select(x => new { x.CharacterId, x.CharacterName, x.ConnectedAt, x.LastAuthenticatedAt }).ToListAsync(ct));
+app.MapGet("/api/eve/characters", async (GhostWatchDbContext db, RefreshQueue queue, CancellationToken ct) =>
+{
+    var characters = await db.EveCharacters.AsNoTracking().OrderBy(x => x.CharacterName)
+        .Select(x => new { x.CharacterId, x.CharacterName, x.ConnectedAt, x.LastAuthenticatedAt }).ToListAsync(ct);
+    return Results.Ok(characters.Select(x => new { x.CharacterId, x.CharacterName, x.ConnectedAt, x.LastAuthenticatedAt,
+        progress = queue.Status(x.CharacterId) }).ToArray());
+});
 app.MapFallback("/api/{**path}", () => Results.NotFound());
 app.MapFallbackToFile("index.html");
 app.Run();

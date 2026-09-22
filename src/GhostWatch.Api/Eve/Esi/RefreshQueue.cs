@@ -3,7 +3,13 @@ using System.Threading.Channels;
 
 namespace GhostWatch.Api.Eve.Esi;
 
-public sealed record RefreshProgress(string State, string? Section = null, string? Error = null);
+public sealed record RefreshProgress(string State, string? Section = null, string? Error = null)
+{
+    public int TotalSteps => CharacterRefresh.Sections.Length;
+    // Stage position, not a count of successfully refreshed sections.
+    public int CurrentStep => State is "complete" or "partial" ? TotalSteps
+        : Section is null ? 0 : Math.Max(0, Array.IndexOf(CharacterRefresh.Sections, Section) + 1);
+}
 
 public sealed class RefreshQueue(IServiceScopeFactory scopes) : BackgroundService
 {
@@ -34,7 +40,7 @@ public sealed class RefreshQueue(IServiceScopeFactory scopes) : BackgroundServic
                     progress[id] = new(complete ? "complete" : "partial");
                 }
                 catch (OperationCanceledException) when (ct.IsCancellationRequested) { break; }
-                catch (Exception error) { progress[id] = new("failed", Error: CharacterRefresh.SafeError(error)); }
+                catch (Exception error) { progress[id] = new("failed", Section: Status(id).Section, Error: CharacterRefresh.SafeError(error)); }
             }
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested) { }

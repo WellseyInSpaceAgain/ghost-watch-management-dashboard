@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace GhostWatch.Api.Eve.Esi;
 
-public sealed class CharacterRefresh(GhostWatchDbContext db, EsiClient esi, ICharacterAccessTokens tokens, InventoryMetadata metadata)
+public sealed class CharacterRefresh(GhostWatchDbContext db, EsiClient esi, ICharacterAccessTokens tokens, InventoryMetadata metadata, LocationNames locations)
 {
     public static readonly string[] Sections = ["wallet", "skills", "skillQueue", "industryJobs", "marketOrders", "assets", "blueprints"];
     public static string SafeError(Exception error) => error switch
@@ -35,11 +35,11 @@ public sealed class CharacterRefresh(GhostWatchDbContext db, EsiClient esi, ICha
             section.AttemptedAt = DateTime.UtcNow;
             var succeeded = false;
             JsonNode? data = null;
+            string? token = null;
             List<EveIndustryJob>? jobs = null;
             try
             {
                 if (authenticationError is not null) throw authenticationError;
-                string token;
                 try { token = await tokens.Get(id, ct); }
                 catch (SsoException error) { authenticationError = error; throw; }
                 var endpoint = name switch
@@ -76,7 +76,17 @@ public sealed class CharacterRefresh(GhostWatchDbContext db, EsiClient esi, ICha
                             else db.EveIndustryJobs.Add(job);
                         }
                     }
-                    section.Warning = name is "assets" or "blueprints" ? await metadata.Collect(data.AsArray(), ct) : null;
+                    var jobTypes = jobs is null ? null : new JsonArray(db.EveIndustryJobs.Local.Where(job => job.CharacterId == id).SelectMany(job => new long?[] { job.BlueprintTypeId, job.ProductTypeId }).OfType<long>().Distinct()
+                        .Select(type => (JsonNode)new JsonObject { ["type_id"] = type }).ToArray());
+                    section.Warning = jobTypes is not null ? await metadata.Collect(jobTypes, ct) : name is "assets" or "blueprints" ? await metadata.Collect(data.AsArray(), ct) : null;
+                    if (name is "assets" or "blueprints")
+                    {
+                        var assets = name == "assets" ? data.AsArray() : await db.EveSections.Where(x => x.CharacterId == id && x.Name == "assets")
+                            .Select(x => x.Json).SingleOrDefaultAsync(ct) is { } json ? JsonNode.Parse(json)!.AsArray() : null;
+                        var warning = await locations.Collect(id, token!, data.AsArray(), assets, ct);
+                        section.Warning = string.Join(" ", new[] { section.Warning, warning }.Where(x => x is not null));
+                        if (section.Warning.Length == 0) section.Warning = null;
+                    }
                     if (section.Warning is not null) complete = false;
                     section.Json = data.ToJsonString();
                     section.UpdatedAt = DateTime.UtcNow;

@@ -1,14 +1,14 @@
 import { test, expect } from '@playwright/test';
 
 test('inventory separates available stock and copies and supports filters and pagination', async ({ page }) => {
-  const available = Array.from({ length: 28 }, (_, index) => ({ typeId: 100 + index, name: `Material ${String(index + 1).padStart(2, '0')}`, category: 'Minerals', quantity: 100, availability: 'Available stock', itemId: 1000 + index, locationId: 60000001, locationFlag: 'Hangar' }));
-  const fitted = { typeId: 200, name: 'Fitted module', category: 'Modules', quantity: 1, availability: 'Fitted / contained assets', itemId: 2000, locationId: 9999, locationFlag: 'HiSlot0' };
+  const available = Array.from({ length: 28 }, (_, index) => ({ typeId: 100 + index, name: `Material ${String(index + 1).padStart(2, '0')}`, category: 'Minerals', quantity: 100, availability: 'Available stock', itemId: 1000 + index, locationId: 60000001, locationFlag: 'Hangar', locationName: 'Jita station' }));
+  const fitted = { typeId: 200, name: 'Fitted module', category: 'Modules', quantity: 1, availability: 'Fitted / contained assets', itemId: 2000, locationId: 9999, locationFlag: 'HiSlot0', locationName: 'Inside Raven · Jita station' };
   await page.route('**/api/eve/characters/7/data', route => route.fulfill({ json: {
     character: { characterId: 7, characterName: 'Inventory pilot' }, progress: { state: 'partial', section: null, error: null }, jobs: [], capacity: null,
     sections: ['assets', 'blueprints'].map(name => ({ name, attemptedAt: '2026-09-22T12:00:00Z', updatedAt: '2026-09-21T12:00:00Z', error: name === 'assets' ? 'Refresh failed on a later page.' : null, warning: name === 'blueprints' ? 'Some names could not be refreshed.' : null, data: [] })),
     inventory: { assets: [...available, fitted], stock: [...available, fitted], blueprints: [
-      { itemId: 3000, typeId: 300, name: 'Module Blueprint', kind: 'Original', quantity: 1, materialEfficiency: 10, timeEfficiency: 20, runsRemaining: null, locationId: 60000001, locationFlag: 'Hangar' },
-      { itemId: 3001, typeId: 300, name: 'Module Blueprint', kind: 'Copy', quantity: 1, materialEfficiency: 2, timeEfficiency: 4, runsRemaining: 7, locationId: 60000001, locationFlag: 'Hangar' },
+      { itemId: 3000, typeId: 300, name: 'Module Blueprint', kind: 'Original', quantity: 1, materialEfficiency: 10, timeEfficiency: 20, runsRemaining: null, locationId: 60000001, locationFlag: 'Hangar', locationName: 'Jita station' },
+      { itemId: 3001, typeId: 300, name: 'Module Blueprint', kind: 'Copy', quantity: 1, materialEfficiency: 2, timeEfficiency: 4, runsRemaining: 7, locationId: 60000001, locationFlag: 'Hangar', locationName: 'Jita station' },
     ] },
   } }));
   await page.goto('/characters/7');
@@ -25,7 +25,9 @@ test('inventory separates available stock and copies and supports filters and pa
   await expect(assets.getByRole('cell', { name: 'Material 01', exact: false })).toHaveCount(0);
   await assets.getByRole('combobox', { name: 'Asset view' }).click();
   await page.getByRole('option', { name: 'Item locations' }).click();
-  await expect(assets.getByRole('cell', { name: '9999 HiSlot0' })).toBeVisible();
+  await expect(assets.getByRole('cell', { name: 'Inside Raven · Jita station ID 9999 · HiSlot0' })).toBeVisible();
+  await assets.getByRole('textbox', { name: 'Search assets' }).fill('Jita');
+  await expect(assets.getByText('Inside Raven · Jita station', { exact: false })).toBeVisible();
   await assets.getByRole('textbox', { name: 'Search assets' }).fill('absent');
   await expect(assets.getByText('No assets match these filters.')).toBeVisible();
   await expect(blueprints.getByRole('cell', { name: 'Unlimited', exact: true })).toBeVisible();

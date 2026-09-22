@@ -8,6 +8,7 @@ namespace GhostWatch.Api.Data;
 
 public sealed class GhostWatchDbContext(DbContextOptions<GhostWatchDbContext> options) : DbContext(options)
 {
+    public DbSet<EveLocationName> EveLocationNames => Set<EveLocationName>();
     public DbSet<PublicEveLookup> PublicEveLookups => Set<PublicEveLookup>();
     public DbSet<EveSection> EveSections => Set<EveSection>();
     public DbSet<EveIndustryJob> EveIndustryJobs => Set<EveIndustryJob>();
@@ -16,6 +17,10 @@ public sealed class GhostWatchDbContext(DbContextOptions<GhostWatchDbContext> op
 
     protected override void OnModelCreating(ModelBuilder model)
     {
+        var location = model.Entity<EveLocationName>();
+        location.HasKey(x => new { x.CharacterId, x.LocationId });
+        location.HasOne<EveCharacter>().WithMany().HasForeignKey(x => x.CharacterId).OnDelete(DeleteBehavior.Restrict);
+        location.Property(x => x.ExpiresAt).HasConversion(v => v, v => DateTime.SpecifyKind(v, DateTimeKind.Utc));
         model.Entity<PublicEveLookup>().HasKey(x => x.Key);
         model.Entity<PublicEveLookup>().Property(x => x.ExpiresAt).HasConversion(v => v, v => DateTime.SpecifyKind(v, DateTimeKind.Utc));
         var section = model.Entity<EveSection>();

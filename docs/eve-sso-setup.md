@@ -6,7 +6,7 @@ Ghost Watch now supports character login and protected refresh-token persistence
 
 1. Open [My Applications in the EVE Developer Portal](https://developers.eveonline.com/applications) and sign in with your EVE account.
 2. Create a new application named **Ghost Watch Management Dashboard**, with a description of this personal economics console. Choose authenticated API access if the form asks for a connection type.
-3. Add the ten character scopes listed below. Do not select corporation scopes or unrelated permissions.
+3. Add the eleven scopes listed below. Do not select corporation scopes or unrelated permissions.
 4. Register the exact callback URL for the way you will run the app:
 
 | Run mode | Callback URL |
@@ -29,6 +29,7 @@ esi-markets.read_character_orders.v1
 esi-characters.read_standings.v1
 esi-characters.read_loyalty.v1
 esi-planets.manage_planets.v1
+esi-universe.read_structures.v1
 ```
 
 These scopes cover the character economics requested by the brief. They are granted at connection time; the application collects the seven sections above. Standings, loyalty points and PI refresh follow in a later slice.
@@ -98,3 +99,7 @@ The application uses its own ASP.NET Data Protection purpose and persists its ke
 Local tests exercise signed JWTs, callback state, PKCE, token protection and rotation against a fake EVE server. They do not establish that live SSO, live token refresh or multi-character ESI refresh works. Record those results only after actual verification. Use the character detail page to verify refresh, then repeat with a second character. Confirm last-success timestamps and retained facts after errors; do not mistake mocked test results for live verification.
 
 The assets/blueprints feature has separate automated coverage; its new live inventory collection still needs verification after upgrading and refreshing. Existing character-workflow verification does not imply verification of every subsequent feature.
+
+## Location names after upgrading
+
+Public station/system names and industry product names are collected on refresh. For private structure names, add `esi-universe.read_structures.v1` to the existing EVE application registration, reconnect each character, then refresh. EVE may still deny a structure lookup when that character lacks access. The UI explicitly labels unavailable names and retains IDs as secondary references. Structure names are cached separately per character; container locations show the containing item type and its parent location.
