@@ -54,6 +54,10 @@ try:
     assert run("exec", name, "id", "-u", capture=True) != "0", "Runtime must be non-root"
     assert b"Ghost Watch Management Dashboard" in get("/")
     assert b"<app-root>" in get("/tracks/new")
+    config = json.loads(get("/api/auth/eve/config"))
+    assert config["configured"] is False
+    assert config["callbackUrl"] == "http://localhost:8080/api/auth/eve/callback"
+    assert json.loads(get("/api/eve/characters")) == []
     try:
         get("/api/missing")
     except urllib.error.HTTPError as error:

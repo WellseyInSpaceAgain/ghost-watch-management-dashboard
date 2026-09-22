@@ -27,7 +27,7 @@ import { TrackApi, Track, requestError } from './tracks/track-api';
         <a mat-stroked-button routerLink="/tracks">Manage Tracks</a>
       }
     </section>
-    <section class="panel"><h2>Workspace setup</h2><p>Track planning is ready. EVE character connections, capital allocations, Runs, and historical reporting are next in development.</p>
+    <section class="panel"><h2>Workspace setup</h2><p>Track planning and EVE character connections are ready. Capital allocations, Runs, ESI data refresh and historical reporting are next in development.</p>
       <p class="muted">Financial metrics remain unavailable until their underlying data is recorded.</p></section>
   `,
 })

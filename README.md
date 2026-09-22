@@ -4,9 +4,11 @@ A local Ghost Watch operations console. Economics is the first module; the full 
 
 ## Current milestone
 
-Implemented: dark responsive console, active Track overview, create/edit/archive/restore Economy Tracks, durable SQLite storage, API validation, and revision checks that prevent stale edits from overwriting newer notes. Archived Tracks retain their IDs, notes and creation dates.
+Implemented: dark responsive console, active Track overview, create/edit/archive/restore Economy Tracks, durable SQLite storage, API validation, revision checks that prevent stale edits from overwriting newer notes, and EVE SSO character connections with protected refresh-token storage. Archived Tracks retain their IDs, notes and creation dates.
 
-The rest of the brief is still pending: EVE SSO/ESI, account grouping, financial workflows, Runs, Capital Pools, knowledge records, Objectives, snapshots and charts. The headline metrics currently show explicit unavailable states. No live character authentication has been attempted.
+The rest of the brief is still pending: ESI data refresh, account grouping, financial workflows, Runs, Capital Pools, knowledge records, Objectives, snapshots and charts. The headline metrics currently show explicit unavailable states. Live EVE authentication remains pending your separate SSO registration; automated tests use a fake EVE server.
+
+Start with [EVE SSO setup](docs/eve-sso-setup.md) to register the application and connect characters. For host Podman from Distrobox, see [container instructions](docs/containers.md).
 
 See [implementation progress](docs/implementation.md) and the [read-only EVE integration review](docs/eve-integration-reference.md).
 
@@ -56,7 +58,7 @@ This is a new application, database and Git history. The reference exporter rema
 
 The API applies committed migrations on startup. Default database: `src/GhostWatch.Api/App_Data/ghost-watch.db` when launched with `dotnet run`. Override the directory with `Storage__Directory` (prefer an absolute path). There is no automatic sample-data seeding.
 
-The initial entity is `EconomyTrack`; its migration is `AddEconomyTracks`. Capital Pool and character relationships, selected KPIs, and financial aggregates will be added with their owning features.
+The current entities are `EconomyTrack` and `EveCharacter`, in separate local-management and EVE identity tables. Migrations: `AddEconomyTracks` and `AddEveCharacterAuthentication`. Capital Pool and character relationships, selected KPIs, and financial aggregates will be added with their owning features.
 
 ```bash
 dotnet ef migrations has-pending-model-changes --project src/GhostWatch.Api
@@ -64,7 +66,7 @@ dotnet ef migrations has-pending-model-changes --project src/GhostWatch.Api
 
 For a local backup, stop the application and copy its entire data directory. SQLite files and future key rings are ignored by Git and excluded from the Docker build context. Local configuration can go in ignored `src/GhostWatch.Api/appsettings.Local.json`; environment variables take precedence. Do not put EVE secrets in tracked configuration.
 
-## Docker
+## Containers
 
 ```bash
 docker compose up --build -d
@@ -76,4 +78,12 @@ Open http://localhost:8080. The multi-stage image serves the compiled Angular UI
 docker compose down
 ```
 
-This preserves the volume. Do not add `--volumes` unless you intend to delete the database. Docker was not available in the initial development environment, so the container recipe has not been executed there.
+This preserves the volume. Do not add `--volumes` unless you intend to delete the database. The image has been built and smoke-tested using host Podman through `distrobox-host-exec`. Docker Compose itself has not been executed.
+
+To repeat host Podman image and persistence verification from Distrobox:
+
+```bash
+python3 scripts/verify-container.py
+```
+
+The smoke test creates and removes only its own temporary container and data volume.

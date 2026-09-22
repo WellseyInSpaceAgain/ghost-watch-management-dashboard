@@ -36,6 +36,18 @@ A small manual Track slice is independent of SSO and makes the foundation usable
 - Published Release application verified with compiled frontend, deep-link routing, API 404 handling, UTC timestamps and SQLite persistence across process restart.
 - EVE reference review recorded in `eve-integration-reference.md`; no EVE implementation has been ported yet.
 
-Next milestone: configure new-application SSO credentials/callback, implement the inspected PKCE/JWT/token-persistence patterns, and complete an interactive character login. Do not mark live SSO or multi-character ESI verification complete using mocked tests.
+## Character authentication milestone
 
-Docker launch remains unverified because neither Docker nor Podman is installed in the development environment. The backend and compiled frontend can be built and run directly.
+- `EveCharacter` identity and protected refresh-token persistence, separate from management entities.
+- Migration `AddEveCharacterAuthentication`.
+- S256 PKCE, ten-minute browser-bound state and atomic single-use callback consumption.
+- Trusted EVE metadata/JWKS discovery, signed RS256 token validation, issuer/audience/expiry checks and key-rollover retry.
+- Protected refresh-token rotation under a per-character lock; access tokens remain in memory.
+- Character list, reconnect without duplicate identities, explicit configuration and safe error states.
+- Changed character ownership is rejected for manual review; local Track data is preserved.
+- 23 backend tests and four browser tests pass. Live EVE authentication is not established by these fake-provider tests.
+- `docs/eve-sso-setup.md` explains registration and local credentials; the user has not registered Ghost Watch yet.
+
+Next milestone: complete interactive login verification after local registration, then implement the ESI client and factual character refresh incrementally. Do not mark live SSO or multi-character ESI verification complete using mocked tests.
+
+Host Podman is available through `distrobox-host-exec` from this Distrobox. The image builds and runs as a non-root user; migrations and named-volume persistence pass the repeatable container smoke test. Docker Compose itself has not been executed. The backend and compiled frontend also build and run directly.

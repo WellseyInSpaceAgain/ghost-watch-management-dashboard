@@ -1,8 +1,8 @@
 # EVE integration reference review
 
-Inspected read-only: `/home/wellsey/Dev/eve-economic-snapshot-exporter`, commit `6a2726a`. The reference working tree was clean when reviewed. No source, database, migration, credentials, build output or Git history was copied.
+Inspected read-only: `/home/wellsey/Dev/eve-economic-snapshot-exporter`, commit `6a2726a`. The reference working tree was clean when reviewed. No database, migrations, credentials, build output or Git history were copied. The inspected `SsoClient` helper was subsequently selectively ported and adapted for Ghost Watch.
 
-This document records observed behaviour in that repository, not completed Ghost Watch integration. EVE SSO and ESI are the next implementation stage. Before live integration, verify current CCP configuration and register the new callback URI.
+This document records observed behaviour in that repository. Ghost Watch now implements the SSO milestone below; ESI remains pending. Register the new application and callback URI using `eve-sso-setup.md` before live verification.
 
 ## Useful source files
 
@@ -62,3 +62,9 @@ Raw ESI payloads in the reference are handled as JSON nodes, rather than a compl
 The exporter persists character snapshot sections because it produces exports. Ghost Watch should preserve raw factual payloads where useful, but give industry jobs stable `(CharacterId, JobId)` identity and separate local Run associations. Do not cascade refresh deletion into local management tables or interpret jobs disappearing from ESI's time window as permission to delete history.
 
 Future local account state, assignments, Track links and Run annotations must be separate from replaceable ESI facts. Economic assessment must distinguish trained levels, ESI active levels and manually recorded subscription state. An invention foundation is not proof that a character can use a particular recipe. Category logic must retain the fitted/contained distinction and avoid substring guesses for T3 materials.
+
+## Implemented adaptation
+
+`Eve/Auth/SsoClient.cs` selectively ports the inspected metadata, Basic token exchange, JWT verification and refresh-token helper with Ghost Watch namespaces, context and data-protection purpose. The callback and state store were written around the new model, with atomic state consumption and explicit public character projections. Changed ownership is rejected rather than clearing exporter snapshot sections. No exporter snapshot architecture was adopted.
+
+Character connections and the refresh-token service pass signed-token fake-provider tests. Live login and refresh are unverified; ESI clients, data sections, economic assessments and name enrichment have not yet been ported. Current SSO guidance was also checked against [EVE's current documentation](https://developers.eveonline.com/docs/services/sso/).

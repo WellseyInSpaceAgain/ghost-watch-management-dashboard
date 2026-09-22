@@ -1,14 +1,22 @@
 using GhostWatch.Api.Economics.Tracks;
+using GhostWatch.Api.Eve;
 using Microsoft.EntityFrameworkCore;
 
 namespace GhostWatch.Api.Data;
 
 public sealed class GhostWatchDbContext(DbContextOptions<GhostWatchDbContext> options) : DbContext(options)
 {
+    public DbSet<EveCharacter> EveCharacters => Set<EveCharacter>();
     public DbSet<EconomyTrack> EconomyTracks => Set<EconomyTrack>();
 
     protected override void OnModelCreating(ModelBuilder model)
     {
+        var character = model.Entity<EveCharacter>();
+        character.ToTable("EveCharacters");
+        character.HasKey(x => x.CharacterId);
+        character.Property(x => x.CharacterId).ValueGeneratedNever();
+        character.Property(x => x.ConnectedAt).HasConversion(v => v, v => DateTime.SpecifyKind(v, DateTimeKind.Utc));
+        character.Property(x => x.LastAuthenticatedAt).HasConversion(v => v, v => DateTime.SpecifyKind(v, DateTimeKind.Utc));
         var track = model.Entity<EconomyTrack>();
         track.ToTable("EconomyTracks");
         track.HasKey(x => x.Id);

@@ -5,5 +5,6 @@ export const routes: Routes = [
   { path: 'tracks', loadComponent: () => import('./tracks/track-list').then(m => m.TrackList) },
   { path: 'tracks/new', loadComponent: () => import('./tracks/track-detail').then(m => m.TrackDetail) },
   { path: 'tracks/:id', loadComponent: () => import('./tracks/track-detail').then(m => m.TrackDetail) },
+  { path: 'characters', loadComponent: () => import('./characters').then(m => m.Characters) },
   { path: '**', redirectTo: '' },
 ];
