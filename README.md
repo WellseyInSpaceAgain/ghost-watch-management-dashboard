@@ -100,7 +100,7 @@ The smoke test creates and removes only its own temporary container and data vol
 
 ## Character refresh
 
-Open **Characters**, select a connected character, then choose **Refresh EVE data**. Refresh runs in a background queue; the page polls only while queued/running. Repeated requests for the same character are rejected while its refresh is pending.
+Open **Characters**, select a connected character, then choose **Refresh EVE data**. Refresh runs in a background queue; the page polls only while queued/running. Repeated requests for the same character are rejected while its refresh is pending. The Characters page also has **Refresh all characters**, which queues every connected character and reports already-running refreshes or individual failures.
 
 Wallet balance, trained/active skill capacity and industry jobs have dedicated views. Raw collected records expose skills, queue and market orders for inspection; name enrichment and richer record views follow later. Each section shows attempt/success timestamps and safe errors. Failed responses retain previous data; jobs retain stable identity and history when absent from later ESI responses. No refresh writes to Economy Tracks.
 

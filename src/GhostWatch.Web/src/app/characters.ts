@@ -1,9 +1,10 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, DestroyRef, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { DatePipe } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
-import { forkJoin } from 'rxjs';
+import { catchError, finalize, forkJoin, map, of } from 'rxjs';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 interface EveConfig { configured: boolean; callbackUrl: string; scopes: string[]; }
 interface Character { characterId: number; characterName: string; connectedAt: string; lastAuthenticatedAt: string; }
@@ -27,7 +28,9 @@ interface Character { characterId: number; characterName: string; connectedAt: s
           <a mat-stroked-button href="https://developers.eveonline.com/applications" target="_blank" rel="noopener noreferrer">Open EVE Developer Portal</a>
         </section>
       }
-      <section class="panel"><div class="section-heading"><h2>Connected characters</h2><span class="tag">EVE IDENTITY</span></div>
+      <section class="panel"><div class="section-heading"><h2>Connected characters</h2><button mat-stroked-button (click)="refreshAll()" [disabled]="refreshingAll() || !characters().length">{{ refreshingAll() ? 'Queuing refreshes…' : 'Refresh all characters' }}</button></div>
+        @if (refreshMessage()) { <p role="status">{{ refreshMessage() }}</p> }
+        @if (refreshError()) { <p role="alert" class="error">{{ refreshError() }}</p> }
         @if (!characters().length) { <p>No characters connected yet.</p><p class="muted">EVE handles your login and character selection. Connect additional characters by repeating the login process.</p> }
         @else {
           <div class="table-wrap"><table><caption class="visually-hidden">Authenticated EVE characters</caption><thead><tr><th>Character</th><th>EVE ID</th><th>Last authenticated</th></tr></thead>
@@ -47,6 +50,7 @@ interface Character { characterId: number; characterName: string; connectedAt: s
 })
 export class Characters {
   private readonly http = inject(HttpClient);
+  private readonly destroyRef = inject(DestroyRef);
   private readonly auth = inject(ActivatedRoute).snapshot.queryParamMap.get('auth');
   readonly connected = this.auth === 'connected';
   readonly outcome = this.auth ? ({
@@ -65,7 +69,26 @@ export class Characters {
   readonly characters = signal<Character[]>([]);
   readonly loading = signal(true);
   readonly error = signal('');
+  readonly refreshingAll = signal(false);
+  readonly refreshMessage = signal('');
+  readonly refreshError = signal('');
   constructor() { this.load(); }
+  refreshAll() {
+    if (this.refreshingAll() || !this.characters().length) return;
+    this.refreshingAll.set(true); this.refreshMessage.set(''); this.refreshError.set('');
+    forkJoin(this.characters().map(character =>
+      this.http.post(`/api/eve/characters/${character.characterId}/refresh`, {}, { headers: { 'X-Ghost-Watch': '1' } }).pipe(
+        map(() => ({ name: character.characterName, state: 'queued' })),
+        catchError(error => of({ name: character.characterName, state: error.status === 409 ? 'already' : 'failed' })),
+      ),
+    )).pipe(takeUntilDestroyed(this.destroyRef), finalize(() => this.refreshingAll.set(false))).subscribe(results => {
+      const queued = results.filter(result => result.state === 'queued').length;
+      const already = results.filter(result => result.state === 'already').length;
+      const failed = results.filter(result => result.state === 'failed');
+      this.refreshMessage.set(`${queued} queued; ${already} already queued or refreshing. Open a character to see progress.`);
+      if (failed.length) this.refreshError.set(`Could not queue: ${failed.map(result => result.name).join(', ')}. Try again; characters already refreshing will be skipped.`);
+    });
+  }
   load() {
     this.loading.set(true); this.error.set('');
     forkJoin({ config: this.http.get<EveConfig>('/api/auth/eve/config'), characters: this.http.get<Character[]>('/api/eve/characters') }).subscribe({

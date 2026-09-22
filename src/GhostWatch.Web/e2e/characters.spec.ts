@@ -24,3 +24,25 @@ test('configured connections list only public character information', async ({ p
   await expect(page.getByRole('link', { name: 'Log in with EVE Online' })).toHaveAttribute('href', '/api/auth/eve/start');
   await expect(page.getByRole('heading', { name: 'Set up EVE authentication' })).toHaveCount(0);
 });
+
+test('refresh all queues every character and reports existing refreshes and failures', async ({ page }) => {
+  await page.route('**/api/auth/eve/config', route => route.fulfill({ json: { configured: true, callbackUrl: '', scopes: [] } }));
+  await page.route('**/api/eve/characters', route => route.fulfill({ json: [1, 2, 3].map(id => ({
+    characterId: id, characterName: `Pilot ${id}`, connectedAt: '2026-09-22T00:00:00Z', lastAuthenticatedAt: '2026-09-22T00:00:00Z',
+  })) }));
+  const requested: string[] = [];
+  await page.route('**/api/eve/characters/*/refresh', route => {
+    expect(route.request().headers()['x-ghost-watch']).toBe('1');
+    expect(route.request().method()).toBe('POST');
+    const id = route.request().url().split('/').at(-2)!;
+    requested.push(id);
+    return route.fulfill({ status: id === '1' ? 202 : id === '2' ? 409 : 500, json: {} });
+  });
+  await page.goto('/characters');
+  const button = page.getByRole('button', { name: 'Refresh all characters' });
+  await button.click();
+  await expect(page.getByRole('status')).toContainText('1 queued; 1 already queued or refreshing');
+  await expect(page.getByRole('alert')).toContainText('Could not queue: Pilot 3');
+  expect(requested.sort()).toEqual(['1', '2', '3']);
+  await expect(button).toBeEnabled();
+});
