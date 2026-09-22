@@ -1,6 +1,7 @@
 using System.Text.Json.Nodes;
 using GhostWatch.Api.Data;
 using GhostWatch.Api.Eve.Inventory;
+using GhostWatch.Api.Eve.Auth;
 using Microsoft.EntityFrameworkCore;
 
 namespace GhostWatch.Api.Eve.Esi;
@@ -17,8 +18,10 @@ public static class EveDataEndpoints
         });
         app.MapGet("/api/eve/characters/{id:long}/data", async (long id, GhostWatchDbContext db, RefreshQueue queue, CancellationToken ct) =>
         {
+            // Capture progress before reading facts: completion must not accompany a pre-refresh snapshot.
+            var progress = queue.Status(id);
             var character = await db.EveCharacters.AsNoTracking().Where(x => x.CharacterId == id)
-                .Select(x => new { x.CharacterId, x.CharacterName }).SingleOrDefaultAsync(ct);
+                .Select(x => new { x.CharacterId, x.CharacterName, x.GrantedScopesJson }).SingleOrDefaultAsync(ct);
             if (character is null) return Results.NotFound();
             var saved = await db.EveSections.AsNoTracking().Where(x => x.CharacterId == id).ToDictionaryAsync(x => x.Name, ct);
             var sections = CharacterRefresh.Sections.Select(name =>
@@ -41,13 +44,13 @@ public static class EveDataEndpoints
                 .ToDictionary(x => long.Parse(x.Key[9..]), x => JsonNode.Parse(x.Json)!["name"]!.GetValue<string>());
             var now = DateTime.UtcNow;
             foreach (var location in await db.EveLocationNames.AsNoTracking().Where(x => x.CharacterId == id && locationIds.Contains(x.LocationId)).ToListAsync(ct))
-                if (location.Name is not null && location.ExpiresAt > now) locationNames[location.LocationId] = location.Name;
+                if (EveScopes.Allows(character.GrantedScopesJson, "structures") && location.Name is not null && location.ExpiresAt > now) locationNames[location.LocationId] = location.Name;
             var inventory = InventoryProjection.Create(assets, blueprints, metadata, locationNames);
             string TypeName(long type) => metadata.GetValueOrDefault($"type:{type}")?["name"]?.GetValue<string>() ?? $"Type {type} (name unavailable)";
             var namedJobs = jobs.Select(job => new { job.JobId, job.ActivityId, job.ProductTypeId, job.BlueprintTypeId,
                 productName = TypeName(job.ProductTypeId ?? job.BlueprintTypeId), blueprintName = TypeName(job.BlueprintTypeId),
                 job.Runs, job.Status, job.StartDate, job.EndDate, job.LastSeenAt });
-            return Results.Ok(new { inventory, character, progress = queue.Status(id), sections, capacity = CapacityCalculator.Calculate(skills), jobs = namedJobs });
+            return Results.Ok(new { inventory, character = new { character.CharacterId, character.CharacterName }, permissions = EveScopes.Permissions(character.GrantedScopesJson), progress, sections, capacity = CapacityCalculator.Calculate(skills), jobs = namedJobs });
         });
     }
 }

@@ -72,9 +72,9 @@ app.MapControllers();
 app.MapGet("/api/eve/characters", async (GhostWatchDbContext db, RefreshQueue queue, CancellationToken ct) =>
 {
     var characters = await db.EveCharacters.AsNoTracking().OrderBy(x => x.CharacterName)
-        .Select(x => new { x.CharacterId, x.CharacterName, x.ConnectedAt, x.LastAuthenticatedAt }).ToListAsync(ct);
+        .Select(x => new { x.CharacterId, x.CharacterName, x.ConnectedAt, x.LastAuthenticatedAt, x.GrantedScopesJson }).ToListAsync(ct);
     return Results.Ok(characters.Select(x => new { x.CharacterId, x.CharacterName, x.ConnectedAt, x.LastAuthenticatedAt,
-        progress = queue.Status(x.CharacterId) }).ToArray());
+        permissions = EveScopes.Permissions(x.GrantedScopesJson), progress = queue.Status(x.CharacterId) }).ToArray());
 });
 app.MapFallback("/api/{**path}", () => Results.NotFound());
 app.MapFallbackToFile("index.html");

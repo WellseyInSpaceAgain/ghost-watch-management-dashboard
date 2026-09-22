@@ -101,7 +101,7 @@ public class InventoryTests
         using var browser = app.CreateClient();
         using var scope = app.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<GhostWatchDbContext>();
-        db.EveCharacters.Add(new() { CharacterId = 7, CharacterName = "Inventory pilot" });
+        db.EveCharacters.Add(new() { CharacterId = 7, GrantedScopesJson = EveScopes.Store(EveScopes.Required), CharacterName = "Inventory pilot" });
         db.EconomyTracks.Add(new EconomyTrack { Name = "Preserve", Notes = "Local planning" });
         await db.SaveChangesAsync();
         var refresh = scope.ServiceProvider.GetRequiredService<CharacterRefresh>();
@@ -164,7 +164,7 @@ public class InventoryTests
         var rows = JsonNode.Parse($"[{Asset(1, 1, 1000000000001)}]")!.AsArray();
         foreach (var id in new long[] { 7, 8 })
         {
-            db.EveCharacters.Add(new() { CharacterId = id, CharacterName = $"Pilot {id}" });
+            db.EveCharacters.Add(new() { CharacterId = id, GrantedScopesJson = EveScopes.Store(EveScopes.Required), CharacterName = $"Pilot {id}" });
             db.EveSections.Add(new() { CharacterId = id, Name = "assets", Json = rows.ToJsonString() });
         }
         await db.SaveChangesAsync();
@@ -186,6 +186,31 @@ public class InventoryTests
     }
 
     [Fact]
+    public async Task Missing_structure_scope_preserves_assets_and_still_resolves_public_names()
+    {
+        using var upstream = new Handler(request =>
+        {
+            Assert.Equal("/universe/names", request.RequestUri!.AbsolutePath);
+            Assert.Null(request.Headers.Authorization);
+            return Json("[{\"id\":60000001,\"name\":\"Public station\"}]");
+        });
+        await using var app = new TestApplication(builder => builder.ConfigureTestServices(services =>
+            services.AddHttpClient<EsiClient>().ConfigurePrimaryHttpMessageHandler(() => upstream)));
+        using var browser = app.CreateClient();
+        using var scope = app.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<GhostWatchDbContext>();
+        var rows = JsonNode.Parse($"[{Asset(1, 1, 1000000000001)},{Asset(2, 1)}]")!.AsArray();
+        db.EveCharacters.Add(new() { CharacterId = 7, CharacterName = "Limited pilot", GrantedScopesJson = EveScopes.Store([EveScopes.ForOperation("assets")]) });
+        await db.SaveChangesAsync();
+        var warning = await scope.ServiceProvider.GetRequiredService<LocationNames>().Collect(7, "token", rows, rows, default);
+        Assert.Contains(EveScopes.ForOperation("structures"), warning);
+        await db.SaveChangesAsync();
+        Assert.Contains("Public station", (await db.PublicEveLookups.SingleAsync()).Json);
+        Assert.Equal(2, rows.Count);
+        Assert.Empty(await db.EveLocationNames.ToListAsync());
+    }
+
+    [Fact]
     public async Task Inventory_migration_preserves_existing_facts_and_management_notes()
     {
         await using var connection = new SqliteConnection("Data Source=:memory:");
@@ -193,7 +218,7 @@ public class InventoryTests
         await using var db = new GhostWatchDbContext(new DbContextOptionsBuilder<GhostWatchDbContext>().UseSqlite(connection).Options);
         var migrator = db.GetService<IMigrator>();
         await migrator.MigrateAsync("20260922215018_AddEveFactualData");
-        db.EveCharacters.Add(new() { CharacterId = 7, CharacterName = "Existing character" });
+        await db.Database.ExecuteSqlRawAsync("INSERT INTO EveCharacters (CharacterId, CharacterName, RefreshToken, ConnectedAt, LastAuthenticatedAt) VALUES (7, 'Existing character', 'retained-token', '2026-09-22 00:00:00', '2026-09-22 00:00:00')");
         db.EconomyTracks.Add(new() { Name = "Existing Track", Notes = "Keep this history" });
         await db.SaveChangesAsync();
         await db.Database.ExecuteSqlRawAsync("INSERT INTO EveSections (CharacterId, Name, Json, AttemptedAt, UpdatedAt, Error) VALUES (7, 'wallet', '123.45', '2026-09-22 00:00:00', '2026-09-22 00:00:00', NULL)");
@@ -201,6 +226,9 @@ public class InventoryTests
         var wallet = await db.EveSections.SingleAsync();
         Assert.Equal("123.45", wallet.Json);
         Assert.Null(wallet.Warning);
+        var character = await db.EveCharacters.SingleAsync();
+        Assert.Null(character.GrantedScopesJson);
+        Assert.Equal("retained-token", character.RefreshToken);
         Assert.Equal("Keep this history", (await db.EconomyTracks.SingleAsync()).Notes);
         Assert.Empty(await db.PublicEveLookups.ToListAsync());
     }

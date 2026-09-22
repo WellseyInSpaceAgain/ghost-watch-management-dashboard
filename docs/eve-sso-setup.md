@@ -103,3 +103,20 @@ The assets/blueprints feature has separate automated coverage; its new live inve
 ## Location names after upgrading
 
 Public station/system names and industry product names are collected on refresh. For private structure names, add `esi-universe.read_structures.v1` to the existing EVE application registration, reconnect each character, then refresh. EVE may still deny a structure lookup when that character lacks access. The UI explicitly labels unavailable names and retains IDs as secondary references. Structure names are cached separately per character; container locations show the containing item type and its parent location.
+
+## Per-character permission status
+
+Ghost Watch persists the `scp` grants from the validated EVE access token, using the [EVE SSO JWT claims documentation](https://developers.eveonline.com/docs/services/sso/#jwt-token-claims). The requested scope list is not treated as proof of consent. Token refresh updates the known grants even if EVE does not rotate the refresh token.
+
+After upgrading an existing database, grants remain unknown until the next successful token refresh or login. The Characters list marks these connections **Permissions not checked**. Each detail page has an **ESI Permissions** panel showing the status and any missing scope names.
+
+To grant missing scopes:
+
+1. Enable them in the EVE application registration.
+2. Open the affected character's detail page and choose **Re-authorise Character**.
+3. Select that same character in EVE and complete consent.
+4. Confirm the success message and updated permissions, then refresh the character data.
+
+Re-authorisation uses PKCE and browser-bound, single-use state with the intended character ID held server-side. A different returned character is rejected; failed or cancelled attempts retain the previous credentials and data. Successful re-authorisation updates the existing record by EVE character ID, invalidates its cached access token and leaves local management data intact. An expired or replayed login returns to Characters with an invalid-state message.
+
+The required permissions and consuming operations are defined centrally in `EveScopes.Definitions`. New permissions need a definition and a consumer; the API computes missing scopes for both views. Refresh skips sections without the necessary grant and retains their last successful data. Structure enrichment is checked independently so missing structure permission does not prevent collecting inventory or resolving public station names.

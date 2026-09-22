@@ -34,13 +34,14 @@ public class SsoTests
     private static HttpClient Browser(TestApplication app) => app.CreateClient(new WebApplicationFactoryClientOptions
         { AllowAutoRedirect = false, HandleCookies = false });
 
-    private static async Task<(string State, string Cookie, string Challenge)> Start(HttpClient browser)
+    private static async Task<(string State, string Cookie, string Challenge)> Start(HttpClient browser, long? characterId = null)
     {
-        var response = await browser.GetAsync("/api/auth/eve/start");
+        var response = await browser.GetAsync("/api/auth/eve/start" + (characterId is null ? "" : $"?characterId={characterId}"));
         Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
         var target = response.Headers.Location!;
         Assert.Equal("login.eveonline.com", target.Host);
         var query = QueryHelpers.ParseQuery(target.Query);
+        Assert.Equal(EveScopes.Required, query["scope"].ToString().Split(' '));
         Assert.Equal("S256", query["code_challenge_method"].ToString());
         Assert.DoesNotContain("code_verifier", target.ToString());
         var cookie = response.Headers.GetValues("Set-Cookie").Single();
@@ -224,6 +225,149 @@ public class SsoTests
         Assert.Equal(1, upstream.Exchanges);
     }
 
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(3)]
+    public async Task List_and_detail_permissions_come_from_actual_signed_grants(int missing)
+    {
+        using var upstream = new FakeSso { GrantedScopes = EveScopes.Required.Skip(missing).ToArray() };
+        await using var app = App(upstream);
+        using var browser = Browser(app);
+        var login = await Start(browser);
+        await Callback(browser, login.State, login.Cookie);
+        var list = (await browser.GetFromJsonAsync<JsonArray>("/api/eve/characters"))!;
+        var detail = (await browser.GetFromJsonAsync<JsonObject>($"/api/eve/characters/{upstream.CharacterId}/data"))!;
+        var permissions = list[0]!["permissions"]!;
+        Assert.Equal(missing == 0, permissions["hasAllRequiredScopes"]!.GetValue<bool>());
+        Assert.Equal(missing, permissions["missingScopeCount"]!.GetValue<int>());
+        Assert.Equal(EveScopes.Required.Take(missing), permissions["missingScopes"]!.AsArray().Select(x => x!.GetValue<string>()));
+        Assert.Equal(permissions.ToJsonString(), detail["permissions"]!.ToJsonString());
+        Assert.DoesNotContain("grantedScopesJson", list.ToJsonString());
+    }
+
+    [Fact]
+    public void Future_required_scopes_and_unverified_legacy_grants_cannot_appear_healthy()
+    {
+        var grants = EveScopes.Store(EveScopes.Required);
+        Assert.True(EveScopes.Permissions(grants).HasAllRequiredScopes);
+        var changed = EveScopes.Compare(grants, EveScopes.Required.Append("future-permission"));
+        Assert.Equal(new[] { "future-permission" }, changed.MissingScopes);
+        Assert.False(changed.HasAllRequiredScopes);
+        var legacy = EveScopes.Permissions(null);
+        Assert.False(legacy.ScopesKnown);
+        Assert.False(legacy.HasAllRequiredScopes);
+    }
+
+    [Fact]
+    public async Task Targeted_reauthorisation_updates_grants_in_place_and_preserves_existing_data()
+    {
+        using var upstream = new FakeSso { GrantedScopes = EveScopes.Required.Skip(2).ToArray() };
+        await using var app = App(upstream);
+        using var browser = Browser(app);
+        var login = await Start(browser);
+        await Callback(browser, login.State, login.Cookie);
+        DateTime connected;
+        string encrypted;
+        using (var scope = app.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<GhostWatchDbContext>();
+            var character = await db.EveCharacters.SingleAsync();
+            connected = character.ConnectedAt;
+            encrypted = character.RefreshToken;
+            db.EveSections.Add(new() { CharacterId = character.CharacterId, Name = "wallet", Json = "123.45" });
+            db.EveLocationNames.Add(new() { CharacterId = character.CharacterId, LocationId = 1000000000001, Name = "Linked location", ExpiresAt = DateTime.UtcNow.AddHours(1) });
+            db.EconomyTracks.Add(new() { Name = "Programme", Notes = "Keep this local plan" });
+            await db.SaveChangesAsync();
+            await scope.ServiceProvider.GetRequiredService<CharacterAccessTokens>().Get(character.CharacterId, default);
+        }
+        upstream.GrantedScopes = EveScopes.Required.ToArray();
+        login = await Start(browser, upstream.CharacterId);
+        Assert.Equal($"/characters/{upstream.CharacterId}?auth=reauthorised", (await Callback(browser, login.State, login.Cookie)).Headers.Location!.ToString());
+        using (var scope = app.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<GhostWatchDbContext>();
+            var character = await db.EveCharacters.SingleAsync();
+            Assert.Equal(connected, character.ConnectedAt);
+            Assert.NotEqual(encrypted, character.RefreshToken);
+            Assert.True(EveScopes.Permissions(character.GrantedScopesJson).HasAllRequiredScopes);
+            Assert.Equal("123.45", (await db.EveSections.SingleAsync()).Json);
+            Assert.Equal("Linked location", (await db.EveLocationNames.SingleAsync()).Name);
+            Assert.Equal("Keep this local plan", (await db.EconomyTracks.SingleAsync()).Notes);
+            var exchanges = upstream.Exchanges;
+            await scope.ServiceProvider.GetRequiredService<CharacterAccessTokens>().Get(character.CharacterId, default);
+            Assert.Equal(exchanges + 1, upstream.Exchanges); // Re-authorisation invalidates old access-token cache.
+        }
+    }
+
+    [Theory]
+    [InlineData("wrong-character")]
+    [InlineData("cancelled")]
+    [InlineData("invalid-grant")]
+    [InlineData("invalid-token")]
+    public async Task Unsuccessful_targeted_reauthorisation_preserves_credentials_and_grants(string failure)
+    {
+        using var upstream = new FakeSso { GrantedScopes = EveScopes.Required.Skip(1).ToArray() };
+        await using var app = App(upstream);
+        using var browser = Browser(app);
+        var login = await Start(browser);
+        await Callback(browser, login.State, login.Cookie);
+        var id = upstream.CharacterId;
+        string refresh; string? grants; DateTime authenticated;
+        using (var scope = app.Services.CreateScope())
+        {
+            var character = await scope.ServiceProvider.GetRequiredService<GhostWatchDbContext>().EveCharacters.SingleAsync();
+            refresh = character.RefreshToken; grants = character.GrantedScopesJson; authenticated = character.LastAuthenticatedAt;
+        }
+        login = await Start(browser, id);
+        upstream.GrantedScopes = EveScopes.Required.ToArray();
+        if (failure == "wrong-character") upstream.CharacterId++;
+        if (failure == "invalid-grant") upstream.FailExchange = true;
+        if (failure == "invalid-token") upstream.InvalidToken = "signature";
+        var response = await Callback(browser, login.State, login.Cookie, failure == "cancelled" ? "error=access_denied" : "code=test-code");
+        Assert.Equal($"/characters/{id}?auth={failure}", response.Headers.Location!.ToString());
+        using var check = app.Services.CreateScope();
+        var saved = await check.ServiceProvider.GetRequiredService<GhostWatchDbContext>().EveCharacters.SingleAsync();
+        Assert.Equal(id, saved.CharacterId);
+        Assert.Equal(refresh, saved.RefreshToken);
+        Assert.Equal(grants, saved.GrantedScopesJson);
+        Assert.Equal(authenticated, saved.LastAuthenticatedAt);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Normal_refresh_updates_actual_grants_even_without_refresh_token_rotation(bool omitRotation)
+    {
+        using var upstream = new FakeSso();
+        await using var app = App(upstream);
+        using var browser = Browser(app);
+        var login = await Start(browser);
+        await Callback(browser, login.State, login.Cookie);
+        upstream.GrantedScopes = EveScopes.Required.Skip(1).ToArray();
+        upstream.OmitRotatedToken = omitRotation;
+        using var scope = app.Services.CreateScope();
+        await scope.ServiceProvider.GetRequiredService<CharacterAccessTokens>().Get(upstream.CharacterId, default);
+        var character = await scope.ServiceProvider.GetRequiredService<GhostWatchDbContext>().EveCharacters.SingleAsync();
+        Assert.Equal(1, EveScopes.Permissions(character.GrantedScopesJson).MissingScopeCount);
+        Assert.Equal(omitRotation ? "refresh-test-token" : "rotated-refresh-token", scope.ServiceProvider.GetRequiredService<IDataProtectionProvider>()
+            .CreateProtector("GhostWatch.Eve.RefreshToken.v1").Unprotect(character.RefreshToken));
+    }
+
+    [Fact]
+    public async Task Missing_scope_claim_is_never_assumed_to_grant_requested_permissions()
+    {
+        using var upstream = new FakeSso { GrantedScopes = null };
+        await using var app = App(upstream);
+        using var browser = Browser(app);
+        var login = await Start(browser);
+        await Callback(browser, login.State, login.Cookie);
+        using var scope = app.Services.CreateScope();
+        var character = await scope.ServiceProvider.GetRequiredService<GhostWatchDbContext>().EveCharacters.SingleAsync();
+        Assert.Equal("[]", character.GrantedScopesJson);
+        Assert.False(EveScopes.Permissions(character.GrantedScopesJson).HasAllRequiredScopes);
+    }
+
     private sealed class FakeSso : HttpMessageHandler
     {
         private readonly RSA rsa = RSA.Create(2048);
@@ -231,6 +375,8 @@ public class SsoTests
         public string CharacterName { get; set; } = "Test character";
         public string Owner { get; set; } = "test-owner";
         public string? InvalidToken { get; set; }
+        public string[]? GrantedScopes { get; set; } = EveScopes.Required.ToArray();
+        public bool OmitRotatedToken { get; set; }
         public bool FailExchange { get; set; }
         public int Exchanges { get; private set; }
         public string AccessToken { get; private set; } = "";
@@ -260,10 +406,13 @@ public class SsoTests
             var keyToSign = new RsaSecurityKey(InvalidToken == "signature" ? other : rsa) { KeyId = "test-key" };
             var claims = new[] { new Claim("sub", $"CHARACTER:EVE:{CharacterId}"), new Claim("name", CharacterName),
                 new Claim("owner", Owner), new Claim("aud", InvalidToken == "audience" ? "wrong-client" : "test-client") };
-            AccessToken = new JwtSecurityTokenHandler().WriteToken(new JwtSecurityToken(
+            var jwt = new JwtSecurityToken(
                 InvalidToken == "issuer" ? "https://attacker.invalid" : "https://login.eveonline.com", "EVE Online", claims,
                 DateTime.UtcNow.AddHours(-2), InvalidToken == "expired" ? DateTime.UtcNow.AddHours(-1) : DateTime.UtcNow.AddMinutes(20),
-                new SigningCredentials(keyToSign, SecurityAlgorithms.RsaSha256)));
+                new SigningCredentials(keyToSign, SecurityAlgorithms.RsaSha256));
+            if (GrantedScopes is not null) jwt.Payload["scp"] = GrantedScopes;
+            AccessToken = new JwtSecurityTokenHandler().WriteToken(jwt);
+            if (OmitRotatedToken && LastForm["grant_type"] == "refresh_token") return Json(new { access_token = AccessToken });
             return Json(new { access_token = AccessToken, refresh_token = LastForm["grant_type"] == "refresh_token" ? "rotated-refresh-token" : "refresh-test-token" });
         }
         private static HttpResponseMessage Json(object value) => new(HttpStatusCode.OK) { Content = JsonContent.Create(value) };

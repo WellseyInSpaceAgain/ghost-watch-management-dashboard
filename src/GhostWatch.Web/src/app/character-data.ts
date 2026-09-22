@@ -1,3 +1,4 @@
+import { EvePermissions } from './eve-permissions';
 import { InventoryData, InventoryView } from './inventory-view';
 import { Component, DestroyRef, inject, signal } from '@angular/core';
 import { DatePipe, DecimalPipe, JsonPipe } from '@angular/common';
@@ -10,6 +11,7 @@ interface Section { name: string; attemptedAt: string | null; updatedAt: string 
 interface Capacity { manufacturingJobs: number; researchJobs: number; reactionJobs: number; marketOrders: number; piColonies: number; }
 interface Job { productName: string; blueprintName: string; jobId: number; activityId: number; productTypeId: number | null; blueprintTypeId: number; runs: number; status: string; startDate: string; endDate: string; lastSeenAt: string; }
 interface CharacterData {
+  permissions?: EvePermissions;
   character: { characterId: number; characterName: string };
   progress: { state: string; section: string | null; error: string | null };
   sections: Section[];
@@ -26,11 +28,29 @@ interface CharacterData {
     <p class="eyebrow">EVE DATA / CHARACTER</p>
     <div class="page-heading"><div><h1>{{ data()?.character?.characterName || 'Character data' }}</h1><p class="muted">Factual EVE state · local Track planning remains separate</p></div>
       <button mat-flat-button (click)="refresh()" [disabled]="!data() || busy() || starting()">{{ busy() || starting() ? 'Refresh in progress…' : 'Refresh EVE data' }}</button></div>
+    @if (authOutcome) { <p [class]="reauthorised ? 'notice' : 'error'" [attr.role]="reauthorised ? 'status' : 'alert'">{{ authOutcome }}</p> }
     @if (error()) { <p class="error" role="alert">{{ error() }} <button mat-button (click)="load()">Retry loading</button></p> }
     @if (data(); as current) {
       <p role="status">Refresh: {{ current.progress.state }} @if (current.progress.section) { · {{ label(current.progress.section) }} }</p>
       @if (current.progress.error) { <p class="error" role="alert">{{ current.progress.error }}</p> }
       @if (current.progress.state === 'partial') { <p class="notice">Some sections could not be refreshed, or names and categories are incomplete. Check errors, warnings and last successful update times below.</p> }
+      <section class="panel" aria-labelledby="permissions-title"><h2 id="permissions-title">ESI Permissions</h2>
+        @if (current.permissions; as permissions) {
+          @if (!permissions.scopesKnown) {
+            <p class="notice">Status: Granted permissions have not been checked.</p><p>Refresh EVE data to check this connection, or re-authorise to grant the current permissions. Previously collected data is retained.</p>
+          } @else if (permissions.hasAllRequiredScopes) {
+            <p>Status: All required permissions granted</p>
+          } @else {
+            <p class="notice">Status: {{ permissions.missingScopeCount }} required {{ permissions.missingScopeCount === 1 ? 'permission' : 'permissions' }} missing</p>
+          }
+          @if (!permissions.hasAllRequiredScopes) {
+            <p>{{ permissions.scopesKnown ? 'Missing permissions:' : 'Required permissions not yet verified:' }}</p>
+            <ul>@for (scope of permissions.missingScopes; track scope) { <li><code>{{ scope }}</code></li> }</ul>
+            <p>Ensure these permissions are enabled in your EVE application registration, then select this same character during re-authorisation. Your local data will be retained.</p>
+            <a mat-flat-button [href]="reauthoriseUrl">Re-authorise Character</a>
+          } @else { <a mat-stroked-button [href]="reauthoriseUrl">Re-authorise Character</a> }
+        } @else { <p>Permission status unavailable. Reload this page to try again.</p> }
+      </section>
       <section class="panel"><h2>Wallet balance</h2>
         @if (wallet() !== null) { <p class="balance">{{ wallet() | number:'1.2-2' }} ISK</p> }
         @else { <p class="muted">Unknown — refresh this character to collect a balance.</p> }
@@ -65,12 +85,28 @@ interface CharacterData {
       </section>
     } @else if (!error()) { <p role="status">Loading character data…</p> }
   `,
-  styles: `.balance { font-size: 24px; } .data-section { border-top: 1px solid #29353d; padding: 12px 0; } summary { cursor: pointer; } details p { margin-top: 12px; } pre { overflow: auto; max-height: 360px; font-size: 12px; }`,
+  styles: `code { overflow-wrap:anywhere; } .balance { font-size: 24px; } .data-section { border-top: 1px solid #29353d; padding: 12px 0; } summary { cursor: pointer; } details p { margin-top: 12px; } pre { overflow: auto; max-height: 360px; font-size: 12px; }`,
 })
 export class CharacterDataPage {
   private readonly http = inject(HttpClient);
   private readonly destroyRef = inject(DestroyRef);
-  private readonly id = inject(ActivatedRoute).snapshot.paramMap.get('id');
+  private readonly route = inject(ActivatedRoute);
+  private readonly id = this.route.snapshot.paramMap.get('id');
+  readonly reauthoriseUrl = `/api/auth/eve/start?characterId=${this.id}`;
+  private readonly auth = this.route.snapshot.queryParamMap.get('auth');
+  readonly reauthorised = this.auth === 'reauthorised';
+  readonly authOutcome = this.auth ? ({
+    reauthorised: 'Character re-authorised successfully. Permissions have been updated.',
+    cancelled: 'Re-authorisation was cancelled. Your existing connection and data were retained.',
+    'wrong-character': 'A different EVE character was selected. Select this character when trying again. Your existing connection and data were retained.',
+    'ownership-changed': 'EVE reported a different character owner. Your existing connection and data were retained.',
+    configuration: 'EVE authentication needs local configuration before you can re-authorise.',
+    'invalid-token': 'The EVE identity or permissions could not be verified. Your existing connection and data were retained.',
+    'invalid-grant': 'The EVE login code was rejected. Try re-authorising again. Your existing connection and data were retained.',
+    'invalid-client': 'EVE rejected the application credentials. Check the local SSO configuration. Your existing connection and data were retained.',
+    'network-error': 'EVE could not be reached. Try again shortly. Your existing connection and data were retained.',
+    timeout: 'EVE authentication timed out. Try re-authorising again. Your existing connection and data were retained.',
+  } as Record<string, string>)[this.auth] ?? 'Re-authorisation failed. Your existing connection and data were retained. Try again.' : '';
   private timer: ReturnType<typeof setTimeout> | undefined;
   private request = 0;
   readonly data = signal<CharacterData | null>(null);

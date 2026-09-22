@@ -2,6 +2,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using GhostWatch.Api.Data;
 using GhostWatch.Api.Eve.Esi;
+using GhostWatch.Api.Eve.Auth;
 
 namespace GhostWatch.Api.Eve.Inventory;
 
@@ -13,6 +14,7 @@ public sealed class LocationNames(GhostWatchDbContext db, EsiClient esi)
     {
         var itemIds = (assets ?? []).Select(row => row!["item_id"]!.GetValue<long>()).ToHashSet();
         var incomplete = false;
+        var missingPermission = false;
         foreach (var row in inventory.DistinctBy(row => row!["location_id"]!.GetValue<long>()))
         {
             var id = row!["location_id"]!.GetValue<long>();
@@ -22,6 +24,9 @@ public sealed class LocationNames(GhostWatchDbContext db, EsiClient esi)
                 if (IsPublic(id)) await PublicName(id, ct);
                 else if (id >= 1000000000000)
                 {
+                    var character = await db.EveCharacters.FindAsync([characterId], ct);
+                    if (!EveScopes.Allows(character?.GrantedScopesJson, "structures"))
+                    { missingPermission = true; continue; }
                     var saved = await db.EveLocationNames.FindAsync([characterId, id], ct);
                     if (saved is not null && saved.ExpiresAt > DateTime.UtcNow)
                     { incomplete |= saved.Name is null; continue; }
@@ -48,7 +53,8 @@ public sealed class LocationNames(GhostWatchDbContext db, EsiClient esi)
             catch (Exception error) when (error is not OperationCanceledException || !ct.IsCancellationRequested)
             { incomplete = true; break; }
         }
-        return incomplete ? "Some location names are unavailable. Structure names require access and the esi-universe.read_structures.v1 scope; add that permission to the EVE registration and reconnect the character if needed." : null;
+        if (missingPermission) return EveScopes.MissingMessage("structures");
+        return incomplete ? "Some location names are unavailable. EVE may deny structure access even with permission. Check ESI Permissions on this character and retry later." : null;
     }
 
     private async Task PublicName(long id, CancellationToken ct)

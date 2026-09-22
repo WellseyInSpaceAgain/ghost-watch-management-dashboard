@@ -19,7 +19,8 @@ public sealed class CharacterRefresh(GhostWatchDbContext db, EsiClient esi, ICha
 
     public async Task<bool> Refresh(long id, Action<string> progress, CancellationToken ct)
     {
-        if (!await db.EveCharacters.AnyAsync(x => x.CharacterId == id, ct)) return false;
+        var character = await db.EveCharacters.SingleOrDefaultAsync(x => x.CharacterId == id, ct);
+        if (character is null) return false;
         var sections = await db.EveSections.Where(x => x.CharacterId == id).ToDictionaryAsync(x => x.Name, ct);
         var complete = true;
         SsoException? authenticationError = null;
@@ -42,6 +43,8 @@ public sealed class CharacterRefresh(GhostWatchDbContext db, EsiClient esi, ICha
                 if (authenticationError is not null) throw authenticationError;
                 try { token = await tokens.Get(id, ct); }
                 catch (SsoException error) { authenticationError = error; throw; }
+                if (!EveScopes.Allows(character.GrantedScopesJson, name))
+                    throw new SsoException(EveScopes.MissingMessage(name), "missing-scope");
                 var endpoint = name switch
                 {
                     "wallet" => "wallet", "skills" => "skills", "skillQueue" => "skillqueue",

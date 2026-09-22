@@ -1,3 +1,5 @@
+import { EvePermissions } from './eve-permissions';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { Component, DestroyRef, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { DatePipe } from '@angular/common';
@@ -9,11 +11,11 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 interface EveConfig { configured: boolean; callbackUrl: string; scopes: string[]; }
 interface RefreshProgress { state: string; section: string | null; error: string | null; currentStep: number; totalSteps: number; }
-interface Character { characterId: number; characterName: string; connectedAt: string; lastAuthenticatedAt: string; progress?: RefreshProgress; }
+interface Character { characterId: number; characterName: string; connectedAt: string; lastAuthenticatedAt: string; progress?: RefreshProgress; permissions?: EvePermissions; }
 
 @Component({
   selector: 'app-characters',
-  imports: [DatePipe, MatButtonModule, MatProgressSpinnerModule, RouterLink],
+  imports: [DatePipe, MatButtonModule, MatProgressSpinnerModule, MatTooltipModule, RouterLink],
   template: `
     <p class="eyebrow">EVE DATA / CHARACTERS</p>
     <div class="page-heading"><div><h1>Characters</h1><p class="muted">Connect the characters supporting your economic programmes.</p></div>
@@ -36,11 +38,13 @@ interface Character { characterId: number; characterName: string; connectedAt: s
         @if (progressError()) { <p class="error" role="alert">{{ progressError() }} <button mat-button (click)="pollCharacters()">Retry status</button></p> }
         @if (!characters().length) { <p>No characters connected yet.</p><p class="muted">EVE handles your login and character selection. Connect additional characters by repeating the login process.</p> }
         @else {
-          <div class="table-wrap"><table><caption class="visually-hidden">Authenticated EVE characters</caption><thead><tr><th>Character</th><th>Refresh progress</th><th>EVE ID</th><th>Last authenticated</th></tr></thead>
+          <div class="table-wrap"><table><caption class="visually-hidden">Authenticated EVE characters</caption><thead><tr><th>Character</th><th>ESI permissions</th><th>Refresh progress</th><th>EVE ID</th><th>Last authenticated</th></tr></thead>
           <tbody>@for (character of characters(); track character.characterId) {
             <tr><td><span class="character-name">
               @if (!progressError() && isRefreshing(character)) { <mat-spinner [diameter]="16" [strokeWidth]="2" [attr.aria-label]="'Refreshing ' + character.characterName" /> }
               <a [routerLink]="['/characters', character.characterId]">{{ character.characterName }}</a></span></td>
+              <td><span tabindex="0" class="permission-badge" [class.permission-warning]="!character.permissions?.hasAllRequiredScopes"
+                [matTooltip]="permissionTooltip(character)">{{ character.permissions?.hasAllRequiredScopes ? '✓ Permissions OK' : character.permissions?.scopesKnown ? '⚠ Missing permissions' : '⚠ Permissions not checked' }}</span></td>
               <td><span [class.muted]="!isRefreshing(character)">{{ progressLabel(character) }}</span>
                 @if (character.progress?.totalSteps) { <small title="Current section / total sections; not a count of successful updates">{{ character.progress!.currentStep }}/{{ character.progress!.totalSteps }} stages</small> }
                 @if (character.progress?.error) { <small class="refresh-failure">{{ character.progress!.error }}</small> }
@@ -55,7 +59,7 @@ interface Character { characterId: number; characterName: string; connectedAt: s
       </ul></details>
     }
   `,
-  styles: `code { overflow-wrap: anywhere; } details p { margin-top: 16px; } summary { cursor: pointer; } .character-name { display:flex; align-items:center; gap:8px; } mat-spinner { flex-shrink:0; } .refresh-failure { color:#ffb4ab; }`,
+  styles: `code { overflow-wrap: anywhere; } details p { margin-top: 16px; } summary { cursor: pointer; } .character-name { display:flex; align-items:center; gap:8px; } mat-spinner { flex-shrink:0; } .permission-badge { font-size:12px; white-space:nowrap; } .permission-warning { color:#ffd180; } .refresh-failure { color:#ffb4ab; }`,
 })
 export class Characters {
   private readonly http = inject(HttpClient);
@@ -87,6 +91,11 @@ export class Characters {
   constructor() {
     this.destroyRef.onDestroy(() => clearTimeout(this.pollTimer));
     this.load();
+  }
+  permissionTooltip(character: Character) {
+    const permissions = character.permissions;
+    return !permissions?.scopesKnown ? 'Granted permissions have not been checked. Refresh EVE data or re-authorise this character.'
+      : permissions.hasAllRequiredScopes ? 'All required ESI permissions granted' : `Missing ${permissions.missingScopeCount} required ESI permissions`;
   }
   isRefreshing(character: Character) { return ['queued', 'running'].includes(character.progress?.state ?? ''); }
   progressLabel(character: Character) {

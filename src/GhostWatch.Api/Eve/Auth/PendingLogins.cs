@@ -4,7 +4,7 @@ using Microsoft.Extensions.Caching.Memory;
 
 namespace GhostWatch.Api.Eve.Auth;
 
-public sealed record PendingLogin(string Verifier, string Browser);
+public sealed record PendingLogin(string Verifier, string Browser, long? CharacterId = null);
 
 public sealed class PendingLogins(IMemoryCache cache)
 {

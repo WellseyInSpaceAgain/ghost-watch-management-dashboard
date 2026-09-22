@@ -102,7 +102,7 @@ public class EsiTests
         using var browser = app.CreateClient();
         using var scope = app.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<GhostWatchDbContext>();
-        db.EveCharacters.Add(new() { CharacterId = 7, CharacterName = "Test pilot" });
+        db.EveCharacters.Add(new() { CharacterId = 7, GrantedScopesJson = EveScopes.Store(EveScopes.Required), CharacterName = "Test pilot" });
         var track = new EconomyTrack { Name = "Local strategy", Notes = "Do not overwrite", Status = "Active" };
         db.EconomyTracks.Add(track); await db.SaveChangesAsync();
         var refresh = scope.ServiceProvider.GetRequiredService<CharacterRefresh>();
@@ -134,6 +134,41 @@ public class EsiTests
     }
 
     [Fact]
+    public async Task Missing_section_scope_skips_request_preserves_facts_and_refreshes_other_sections()
+    {
+        var paths = new List<string>();
+        using var upstream = new Handler(request =>
+        {
+            var path = request.RequestUri!.AbsolutePath;
+            paths.Add(path);
+            return Json(path.EndsWith("wallet") ? "900" : "[]");
+        });
+        await using var app = new TestApplication(builder => builder.ConfigureTestServices(services =>
+        {
+            services.AddScoped<ICharacterAccessTokens, Tokens>();
+            services.AddHttpClient<EsiClient>().ConfigurePrimaryHttpMessageHandler(() => upstream);
+        }));
+        using var browser = app.CreateClient();
+        using var scope = app.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<GhostWatchDbContext>();
+        db.EveCharacters.Add(new() { CharacterId = 7, CharacterName = "Limited pilot",
+            GrantedScopesJson = EveScopes.Store(EveScopes.Required.Except([EveScopes.ForOperation("skills")])) });
+        var oldTime = DateTime.UtcNow.AddDays(-1);
+        const string oldSkills = "{\"skills\":[{\"skill_id\":3387,\"trained_skill_level\":5}]}";
+        db.EveSections.Add(new() { CharacterId = 7, Name = "skills", Json = oldSkills, UpdatedAt = oldTime });
+        await db.SaveChangesAsync();
+        Assert.False(await scope.ServiceProvider.GetRequiredService<CharacterRefresh>().Refresh(7, _ => { }, default));
+        Assert.DoesNotContain(paths, path => path.EndsWith("/skills"));
+        var skills = await db.EveSections.SingleAsync(x => x.Name == "skills");
+        Assert.Equal(oldSkills, skills.Json);
+        Assert.Equal(oldTime, skills.UpdatedAt);
+        Assert.Contains("Re-authorise", skills.Error);
+        Assert.Contains(EveScopes.ForOperation("skills"), skills.Error);
+        Assert.Equal("900", (await db.EveSections.SingleAsync(x => x.Name == "wallet")).Json);
+        Assert.All(await db.EveSections.Where(x => x.Name != "skills").ToListAsync(), section => Assert.Null(section.Error));
+    }
+
+    [Fact]
     public void Missing_active_skills_stay_unknown_and_trained_capacity_is_distinct()
     {
         Assert.Null(CapacityCalculator.Calculate(null));
@@ -159,7 +194,7 @@ public class EsiTests
         using (var scope = app.Services.CreateScope())
         {
             var db = scope.ServiceProvider.GetRequiredService<GhostWatchDbContext>();
-            db.EveCharacters.AddRange(new EveCharacter { CharacterId = 7, CharacterName = "First" }, new EveCharacter { CharacterId = 8, CharacterName = "Second" });
+            db.EveCharacters.AddRange(new EveCharacter { CharacterId = 7, GrantedScopesJson = EveScopes.Store(EveScopes.Required), CharacterName = "First" }, new EveCharacter { CharacterId = 8, GrantedScopesJson = EveScopes.Store(EveScopes.Required), CharacterName = "Second" });
             await db.SaveChangesAsync();
         }
         browser.DefaultRequestHeaders.Add("X-Ghost-Watch", "1");

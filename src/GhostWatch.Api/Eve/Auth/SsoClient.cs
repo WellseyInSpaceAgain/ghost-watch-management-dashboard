@@ -112,13 +112,15 @@ public class SsoClient(HttpClient http, IMemoryCache cache, IOptions<EveOptions>
         var owner = jwt.Claims.FirstOrDefault(c => c.Type == "owner")?.Value;
         if (character.CharacterOwnerHash is not null && owner != character.CharacterOwnerHash)
             throw new SsoException("Character ownership changed. Reconnect this character.");
+        var grantedScopes = EveScopes.FromValidatedToken(jwt);
         if (result["refresh_token"] is { } rotated)
         {
             if (rotated is not JsonValue value || !value.TryGetValue<string>(out var refreshValue) || string.IsNullOrWhiteSpace(refreshValue))
                 throw new SsoException("Incomplete token response.", "invalid-token-response");
             character.RefreshToken = Protect(refreshValue);
-            await db.SaveChangesAsync(ct);
         }
+        character.GrantedScopesJson = grantedScopes;
+        await db.SaveChangesAsync(ct);
         if (jwt.ValidTo.AddSeconds(-60) > DateTime.UtcNow)
             cache.Set(key, access, jwt.ValidTo.AddSeconds(-60));
         return access;

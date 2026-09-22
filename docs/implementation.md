@@ -82,3 +82,13 @@ Next: continue PI/standings/loyalty points, account grouping and broader economi
 - Location caches have a new additive migration. Public names are shared; private structure names are scoped to character, expire after an hour and are cleared on explicit access denial.
 - Add the structure-read scope to the SSO registration and reconnect existing characters for private structure names. Public names only require a refresh.
 - Reviewed all frontend views: Track and character labels already use names; inventory locations and job products now do too. Job/item identifiers and raw diagnostic JSON retain IDs intentionally.
+
+### Per-character ESI scope awareness
+
+- Added nullable granted-scope storage through an additive migration. Existing connections remain explicitly unverified until a validated token supplies grants; no permissions are inferred from configuration.
+- `EveScopes` owns the required scope definitions, operation mapping, verified-claim parsing and missing-scope calculation. Both character APIs expose the same permission status.
+- Added compact list badges/tooltips and a detail permission panel with missing scopes and targeted re-authorisation. PKCE state binds the intended character ID; mismatch, cancellation and authentication failure preserve existing credentials.
+- Re-authorisation updates the existing character identity record without replacement. Tests retain connection timestamps, character-linked facts/location rows and local Track notes. Account grouping, subscription settings and economic assignment relationships are not implemented yet; no new versions of those features are introduced here.
+- Normal token refresh persists the new verified grants, including responses without refresh-token rotation. Missing operation scopes retain existing facts and report an explicit re-authorisation requirement while authorised operations continue.
+- Live SSO was manually verified before this feature; the new targeted re-authorisation and scope reporting have automated coverage and still need live verification.
+- Verification: 64 backend tests and 12 browser tests pass, including scope-aware partial refresh, targeted callback failures, token rotation, migration preservation and permission badges. Fixed a detail-response race so a completed refresh cannot be paired with facts read before completion.

@@ -9,6 +9,8 @@ public sealed class EveCharacter
     public string CharacterName { get; set; } = "";
     [JsonIgnore] public string? CharacterOwnerHash { get; set; }
     [JsonIgnore] public string RefreshToken { get; set; } = "";
+    // Null means this pre-existing connection has not had its grants verified yet.
+    [JsonIgnore] public string? GrantedScopesJson { get; set; }
     public DateTime ConnectedAt { get; set; } = DateTime.UtcNow;
     public DateTime LastAuthenticatedAt { get; set; } = DateTime.UtcNow;
 }
