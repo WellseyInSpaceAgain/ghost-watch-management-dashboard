@@ -18,7 +18,7 @@ States: **done** = end-to-end implemented and automated verification recorded; *
 | 10 | Create Playbooks | pending | |
 | 11 | Markdown Playbook editing | pending | Include revision retention |
 | 12 | Arbitrary Records/notes | pending | Typed metadata, flexible Markdown and links |
-| 13 | Objectives and Gates | pending | Checklist conditions, manual progress |
+| 13 | Objectives and Gates | done | Manual checklist, progress, Track links and completion state; API/browser tests |
 | 14 | Conceptual Capital Pools | done | Create/edit/archive/restore, roles, targets and Track defaults; Run-derived metrics await Runs |
 | 15 | Capital adjustments/transfers | done | Atomic conceptual movements with immutable named history |
 | 16 | Compare allocation to real wallets | done | Over-allocation warning, complete/partial/stale wallet states |
@@ -30,7 +30,7 @@ States: **done** = end-to-end implemented and automated verification recorded; *
 | 22 | Expected financial results | done | Independent nullable input/other cost/revenue and calculated profit |
 | 23 | Actual financial results | done | Independent actuals, margin, durations and efficiency |
 | 24 | Run verdicts | done | R&D completion and successful verdict work without revenue |
-| 25 | Run/Track metrics | pending | Central calculations, selected KPIs and manual T3 stages |
+| 25 | Run/Track metrics | in progress | Run financials and manual T3 stages done; Track summaries and selected KPIs remain |
 | 26 | Replacement Packages | pending | |
 | 27 | Replacement coverage | pending | |
 | 28 | Manual Economic Snapshot | pending | Immutable stored values |

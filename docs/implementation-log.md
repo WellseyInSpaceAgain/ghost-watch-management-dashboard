@@ -43,3 +43,10 @@
 - Central financials distinguish estimates from actuals and preserve unknowns. Slot-days require explicit duration and concurrency. R&D can complete with absent revenue and a successful verdict; explicitly recording zero revenue permits calculating a loss.
 - Active/Selling Run costs are committed capital: use complete actual costs, otherwise complete expected costs, otherwise unknown. Pool available capital follows allocated minus commitments; immutable conceptual allocations do not automatically absorb trading profit or expenditure.
 - Verification: 71 backend tests; full browser integration covered all existing workflows, with a new-Run empty-ID submission bug found and fixed. Both Run workflow tests then pass. Production backend/frontend builds and isolated Compose migrations/persistence checks pass.
+
+## Objectives, Gates and production strategy
+
+- Added Objectives/Gates with optional Track link, status, target date, nullable manual progress, checklist conditions and notes. Completion timestamps are set on completion; reopening clears current completion status without replacing the record. No expression/rules engine or automatic action is introduced.
+- Track detail now edits user-defined production stages and internal/external state. The backend calculates internalisation as internal/selected stages; an empty set stays unknown. This never claims recipe capability.
+- Revision checks reject stale planning updates; validation covers progress bounds, references and duplicate stage names.
+- Backend verification: 73 tests pass; frontend production build passes. Browser coverage exercises a Gate checklist and persisted 50% internalisation.

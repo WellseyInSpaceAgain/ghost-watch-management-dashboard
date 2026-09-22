@@ -1,0 +1,26 @@
+import { test, expect } from '@playwright/test';
+test('Gate checklist and Track internalisation persist', async ({ page, request }) => {
+  const suffix=Date.now();const name=`Expansion gate ${suffix}`;
+  await page.goto('/objectives');
+  await page.getByLabel('Objective name',{exact:true}).fill(name);
+  await page.getByRole('combobox',{name:'Type',exact:true}).selectOption('Gate');
+  await page.getByRole('button',{name:'Add condition'}).click();
+  await page.getByRole('textbox',{name:'Condition 1',exact:true}).fill('Demonstrated demand');
+  await page.getByRole('checkbox',{name:'Condition 1 complete',exact:true}).check();
+  await page.getByRole('button',{name:'Save objective'}).click();
+  await expect(page.getByRole('status')).toContainText('Objective saved');
+  await page.reload();
+  await expect(page.getByRole('row').filter({hasText:name})).toContainText('1/1 conditions checked');
+  const track=await (await request.post('/api/economics/tracks',{data:{name:`Tengu ${suffix}`,description:'',notes:'',status:'Active',purpose:'R&D'}})).json();
+  await page.goto(`/tracks/${track.id}`);
+  await expect(page.getByText('Unknown — no stages selected',{exact:false})).toBeVisible();
+  await page.getByRole('button',{name:'Add stage'}).click();
+  await page.getByRole('textbox',{name:'Stage 1 name'}).fill('Hull assembly');
+  await page.getByRole('checkbox',{name:'Internal',exact:true}).check();
+  await page.getByRole('button',{name:'Add stage'}).click();
+  await page.getByRole('textbox',{name:'Stage 2 name'}).fill('Subsystem assembly');
+  await page.getByRole('button',{name:'Save stages'}).click();
+  await expect(page.getByRole('status').filter({hasText:'Stages saved'})).toBeVisible();
+  await page.reload();
+  await expect(page.getByText('Saved internalisation: 50%',{exact:true})).toBeVisible();
+});

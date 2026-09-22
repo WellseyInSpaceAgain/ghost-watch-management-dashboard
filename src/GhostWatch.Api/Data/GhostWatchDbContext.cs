@@ -1,6 +1,7 @@
 using GhostWatch.Api.Economics.Tracks;
 using GhostWatch.Api.Economics.Capital;
 using GhostWatch.Api.Economics.Runs;
+using GhostWatch.Api.Economics.Planning;
 using GhostWatch.Api.Management;
 using GhostWatch.Api.Eve;
 using GhostWatch.Api.Eve.Inventory;
@@ -11,6 +12,8 @@ namespace GhostWatch.Api.Data;
 
 public sealed class GhostWatchDbContext(DbContextOptions<GhostWatchDbContext> options) : DbContext(options)
 {
+    public DbSet<Objective> Objectives => Set<Objective>();
+    public DbSet<TrackStrategy> TrackStrategies => Set<TrackStrategy>();
     public DbSet<EconomicRun> EconomicRuns => Set<EconomicRun>();
     public DbSet<RunJob> RunJobs => Set<RunJob>();
     public DbSet<CapitalPool> CapitalPools => Set<CapitalPool>();
@@ -27,6 +30,14 @@ public sealed class GhostWatchDbContext(DbContextOptions<GhostWatchDbContext> op
 
     protected override void OnModelCreating(ModelBuilder model)
     {
+        var objective = model.Entity<Objective>(); objective.HasKey(x => x.Id); objective.Property(x => x.Revision).IsConcurrencyToken();
+        objective.HasOne(x => x.Track).WithMany().HasForeignKey(x => x.TrackId).OnDelete(DeleteBehavior.Restrict);
+        objective.Property(x => x.CreatedAt).HasConversion(v => v, v => DateTime.SpecifyKind(v, DateTimeKind.Utc));
+        objective.Property(x => x.UpdatedAt).HasConversion(v => v, v => DateTime.SpecifyKind(v, DateTimeKind.Utc));
+        objective.Property(x => x.TargetDate).HasConversion(v => v, v => v.HasValue ? DateTime.SpecifyKind(v.Value, DateTimeKind.Utc) : (DateTime?)null);
+        objective.Property(x => x.CompletedAt).HasConversion(v => v, v => v.HasValue ? DateTime.SpecifyKind(v.Value, DateTimeKind.Utc) : (DateTime?)null);
+        var strategy = model.Entity<TrackStrategy>(); strategy.HasKey(x => x.TrackId); strategy.Property(x => x.Revision).IsConcurrencyToken();
+        strategy.HasOne<EconomyTrack>().WithOne().HasForeignKey<TrackStrategy>(x => x.TrackId).OnDelete(DeleteBehavior.Restrict);
         var run = model.Entity<EconomicRun>(); run.HasKey(x => x.Id); run.Property(x => x.Revision).IsConcurrencyToken();
         run.HasOne(x => x.Track).WithMany().HasForeignKey(x => x.TrackId).OnDelete(DeleteBehavior.Restrict);
         run.HasOne(x => x.CapitalPool).WithMany().HasForeignKey(x => x.CapitalPoolId).OnDelete(DeleteBehavior.Restrict);
