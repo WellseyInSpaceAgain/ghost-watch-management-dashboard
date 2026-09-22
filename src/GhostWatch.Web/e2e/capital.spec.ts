@@ -1,0 +1,26 @@
+import { test, expect } from '@playwright/test';
+test('conceptual pools and transfer history persist without EVE wallets', async ({ page }) => {
+  const suffix = Date.now(); const core = `Core ${suffix}`; const reserve = `Reserve ${suffix}`;
+  await page.goto('/capital');
+  await page.getByLabel('Pool name', { exact: true }).fill(core);
+  await page.getByRole('button', { name: 'Save pool', exact: true }).click();
+  await expect(page.getByRole('status')).toHaveText('Pool saved.');
+  await page.getByRole('button', { name: 'New pool', exact: true }).click();
+  await page.getByLabel('Pool name', { exact: true }).fill(reserve);
+  await page.getByRole('button', { name: 'Save pool', exact: true }).click();
+  await expect(page.getByRole('status')).toHaveText('Pool saved.');
+  await page.getByRole('combobox', { name: 'To pool', exact: true }).selectOption({ label: core });
+  await page.getByLabel('Amount (ISK)', { exact: true }).fill('1200');
+  await page.getByLabel('Reason', { exact: true }).fill('Initial allocation');
+  await page.getByRole('button', { name: 'Record adjustment' }).click();
+  await expect(page.getByRole('status')).toHaveText('Capital adjustment recorded.');
+  await page.getByRole('combobox', { name: 'From pool', exact: true }).selectOption({ label: core });
+  await page.getByRole('combobox', { name: 'To pool', exact: true }).selectOption({ label: reserve });
+  await page.getByLabel('Amount (ISK)', { exact: true }).fill('250');
+  await page.getByLabel('Reason', { exact: true }).fill(`Reserve transfer ${suffix}`);
+  await page.getByRole('button', { name: 'Record adjustment' }).click();
+  await expect(page.getByText(`Reserve transfer ${suffix}`, { exact: true })).toBeVisible();
+  await page.reload();
+  await expect(page.getByRole('row').filter({ hasText: reserve }).filter({ hasText: '250.00' })).toHaveCount(2);
+  await expect(page.getByText('Wallet total incomplete:', { exact: false })).toBeVisible();
+});

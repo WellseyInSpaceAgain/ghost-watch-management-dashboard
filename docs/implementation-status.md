@@ -19,14 +19,14 @@ States: **done** = end-to-end implemented and automated verification recorded; *
 | 11 | Markdown Playbook editing | pending | Include revision retention |
 | 12 | Arbitrary Records/notes | pending | Typed metadata, flexible Markdown and links |
 | 13 | Objectives and Gates | pending | Checklist conditions, manual progress |
-| 14 | Conceptual Capital Pools | pending | |
-| 15 | Capital adjustments/transfers | pending | History required |
-| 16 | Compare allocation to real wallets | pending | Unknown/incomplete wallets must remain explicit |
+| 14 | Conceptual Capital Pools | done | Create/edit/archive/restore, roles, targets and Track defaults; Run-derived metrics await Runs |
+| 15 | Capital adjustments/transfers | done | Atomic conceptual movements with immutable named history |
+| 16 | Compare allocation to real wallets | done | Over-allocation warning, complete/partial/stale wallet states |
 | 17 | View ESI industry jobs | done | Named products and retained job history on character detail |
 | 18 | Identify unassociated jobs | pending | |
 | 19 | Run from ESI job | pending | |
 | 20 | Associate jobs with Runs | pending | Include removing associations |
-| 21 | Manual Runs | pending | |
+| 21 | Manual Runs | in progress | Next vertical slice |
 | 22 | Expected financial results | pending | |
 | 23 | Actual financial results | pending | |
 | 24 | Run verdicts | pending | R&D success independent of profit |

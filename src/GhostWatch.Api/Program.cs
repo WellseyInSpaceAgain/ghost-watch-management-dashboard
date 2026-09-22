@@ -1,5 +1,6 @@
 using GhostWatch.Api.Data;
 using GhostWatch.Api.Management;
+using GhostWatch.Api.Economics.Capital;
 using GhostWatch.Api.Eve.Inventory;
 using GhostWatch.Api.Eve.Esi;
 using GhostWatch.Api.Eve.Auth;
@@ -69,6 +70,7 @@ app.UseDefaultFiles();
 app.UseStaticFiles();
 app.MapGet("/api/health", () => Results.Ok(new { application = "Ghost Watch Management Dashboard", status = "ok" }));
 app.MapTracks();
+app.MapCapital();
 app.MapCharacterManagement();
 app.MapEveData();
 app.MapControllers();

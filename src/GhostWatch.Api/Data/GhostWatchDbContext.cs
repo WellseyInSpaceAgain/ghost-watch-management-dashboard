@@ -1,4 +1,5 @@
 using GhostWatch.Api.Economics.Tracks;
+using GhostWatch.Api.Economics.Capital;
 using GhostWatch.Api.Management;
 using GhostWatch.Api.Eve;
 using GhostWatch.Api.Eve.Inventory;
@@ -9,6 +10,8 @@ namespace GhostWatch.Api.Data;
 
 public sealed class GhostWatchDbContext(DbContextOptions<GhostWatchDbContext> options) : DbContext(options)
 {
+    public DbSet<CapitalPool> CapitalPools => Set<CapitalPool>();
+    public DbSet<CapitalAdjustment> CapitalAdjustments => Set<CapitalAdjustment>();
     public DbSet<ManagedAccount> ManagedAccounts => Set<ManagedAccount>();
     public DbSet<CharacterPlan> CharacterPlans => Set<CharacterPlan>();
     public DbSet<CharacterTrack> CharacterTracks => Set<CharacterTrack>();
@@ -21,6 +24,16 @@ public sealed class GhostWatchDbContext(DbContextOptions<GhostWatchDbContext> op
 
     protected override void OnModelCreating(ModelBuilder model)
     {
+        var pool = model.Entity<CapitalPool>(); pool.HasKey(x => x.Id); pool.Property(x => x.Revision).IsConcurrencyToken();
+        pool.Property(x => x.CreatedAt).HasConversion(v => v, v => DateTime.SpecifyKind(v, DateTimeKind.Utc));
+        pool.Property(x => x.UpdatedAt).HasConversion(v => v, v => DateTime.SpecifyKind(v, DateTimeKind.Utc));
+        pool.Property(x => x.ArchivedAt).HasConversion(v => v, v => v.HasValue ? DateTime.SpecifyKind(v.Value, DateTimeKind.Utc) : (DateTime?)null);
+        pool.HasIndex(x => x.Role).IsUnique().HasFilter("\"Role\" <> 'Other' AND \"ArchivedAt\" IS NULL");
+        var adjustment = model.Entity<CapitalAdjustment>(); adjustment.HasKey(x => x.Id);
+        adjustment.HasOne<CapitalPool>().WithMany().HasForeignKey(x => x.FromPoolId).OnDelete(DeleteBehavior.Restrict);
+        adjustment.HasOne<CapitalPool>().WithMany().HasForeignKey(x => x.ToPoolId).OnDelete(DeleteBehavior.Restrict);
+        adjustment.Property(x => x.Date).HasConversion(v => v, v => DateTime.SpecifyKind(v, DateTimeKind.Utc));
+        adjustment.Property(x => x.CreatedAt).HasConversion(v => v, v => DateTime.SpecifyKind(v, DateTimeKind.Utc));
         var account = model.Entity<ManagedAccount>();
         account.HasKey(x => x.Id); account.Property(x => x.Revision).IsConcurrencyToken();
         var plan = model.Entity<CharacterPlan>();
@@ -56,6 +69,7 @@ public sealed class GhostWatchDbContext(DbContextOptions<GhostWatchDbContext> op
         var track = model.Entity<EconomyTrack>();
         track.ToTable("EconomyTracks");
         track.HasKey(x => x.Id);
+        track.HasOne<CapitalPool>().WithMany().HasForeignKey(x => x.DefaultCapitalPoolId).OnDelete(DeleteBehavior.Restrict);
         track.Property(x => x.Name).HasMaxLength(120);
         track.Property(x => x.Description).HasMaxLength(2000);
         track.Property(x => x.Notes).HasMaxLength(20000);

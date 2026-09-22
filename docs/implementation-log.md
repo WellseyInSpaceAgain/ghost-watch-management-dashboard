@@ -24,3 +24,13 @@
 - Selectively adapted the reference economic assessor: trained/active evidence, dormant skills, broad manufacturing/research/reaction/trading/PI/refining/hauling/invention foundations, user-set subscription context and explicit recipe-eligibility unknowns.
 - Raw factual JSON remains unmodified; public names and type/group metadata are independent caches. Scope checks and failure retention apply to all added sections.
 - Integration pass: backend build and 67 tests pass; Angular production build and all 14 browser tests pass. Existing account, scope and Track workflows remain connected. New live EVE sections remain separately blocked on external verification.
+
+## Conceptual Capital Pools
+
+- Added pool creation/editing, target capital, archive/restore and optional programme roles. Core Capital/Treasury/etc. roles avoid identifying financial concepts by editable display names; each named role has at most one active pool.
+- Allocations change only through immutable adjustment history. Transfers update both pools and append history in one EF save transaction, with revision-based concurrency protection. They never write EVE wallets.
+- Over-allocation is allowed and warned about when all connected characters have collected wallets. Incomplete wallets return unknown totals/comparison plus known balance counts; stale balances are labelled. Archived allocations continue to count until explicitly released.
+- Track default Capital Pool selection is saved independently from factual data. Run-derived commitments/spend/revenue follow with the next Run slice; they are not fabricated from EVE wallet totals.
+- Added central nullable financial functions for subsequent Run/snapshot use. Blank financial values stay unknown; users can explicitly record zero where it is known.
+- Backend verification: 69 tests pass, including transfer history/atomicity, over-allocation, wallet isolation, stale revisions and legacy migrations.
+- Browser checks verify pool creation, allocation/transfer history and reload persistence; Track archive/restore and narrow-screen checks pass after making the expanded navigation wrap. Angular production build passes.

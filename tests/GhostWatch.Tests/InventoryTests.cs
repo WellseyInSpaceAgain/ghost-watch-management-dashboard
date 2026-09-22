@@ -219,7 +219,7 @@ public class InventoryTests
         var migrator = db.GetService<IMigrator>();
         await migrator.MigrateAsync("20260922215018_AddEveFactualData");
         await db.Database.ExecuteSqlRawAsync("INSERT INTO EveCharacters (CharacterId, CharacterName, RefreshToken, ConnectedAt, LastAuthenticatedAt) VALUES (7, 'Existing character', 'retained-token', '2026-09-22 00:00:00', '2026-09-22 00:00:00')");
-        db.EconomyTracks.Add(new() { Name = "Existing Track", Notes = "Keep this history" });
+        await db.Database.ExecuteSqlRawAsync("INSERT INTO EconomyTracks (Id, Name, Description, Notes, Status, Purpose, CreatedAt, UpdatedAt, Revision) VALUES ('11111111-1111-1111-1111-111111111111', 'Existing Track', '', 'Keep this history', 'Active', 'Other', '2026-09-22 00:00:00', '2026-09-22 00:00:00', 1)");
         await db.SaveChangesAsync();
         await db.Database.ExecuteSqlRawAsync("INSERT INTO EveSections (CharacterId, Name, Json, AttemptedAt, UpdatedAt, Error) VALUES (7, 'wallet', '123.45', '2026-09-22 00:00:00', '2026-09-22 00:00:00', NULL)");
         await migrator.MigrateAsync();

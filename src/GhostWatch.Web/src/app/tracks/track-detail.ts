@@ -1,3 +1,5 @@
+import { HttpClient } from '@angular/common/http';
+import { Pool } from '../capital';
 import { TrackCharacters } from '../track-characters';
 import { Component, inject, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
@@ -36,6 +38,7 @@ import { Track, TrackApi, TrackDraft, TrackOptions, requestError } from './track
             @for (purpose of options().purposes; track purpose) { <mat-option [value]="purpose">{{ purpose }}</mat-option> }
           </mat-select></mat-form-field>
         </div>
+        <mat-form-field appearance="outline" class="full"><mat-label>Default Capital Pool</mat-label><mat-select name="defaultCapitalPoolId" [(ngModel)]="draft.defaultCapitalPoolId"><mat-option [value]="null">None</mat-option>@for (pool of pools(); track pool.id) { <mat-option [value]="pool.id">{{ pool.name }}{{ pool.archivedAt ? ' (archived)' : '' }}</mat-option> }</mat-select></mat-form-field>
         <mat-form-field appearance="outline" class="full"><mat-label>Description</mat-label>
           <textarea matInput name="description" [(ngModel)]="draft.description" rows="3" maxlength="2000" [disabled]="saving()"></textarea>
         </mat-form-field>
@@ -53,6 +56,8 @@ import { Track, TrackApi, TrackDraft, TrackOptions, requestError } from './track
   `,
 })
 export class TrackDetail {
+  private readonly http = inject(HttpClient);
+  readonly pools = signal<Pool[]>([]);
   private readonly api = inject(TrackApi);
   private readonly router = inject(Router);
   readonly id = inject(ActivatedRoute).snapshot.paramMap.get('id');
@@ -64,13 +69,13 @@ export class TrackDetail {
   readonly saved = signal(false);
   readonly error = signal('');
   draft: TrackDraft = { name: '', description: '', status: 'Planning', purpose: 'Other', notes: '' };
-  constructor() { this.load(); }
+  constructor() { this.load(); this.http.get<{pools:Pool[]}>('/api/economics/capital').subscribe({next: data => this.pools.set(data.pools), error: () => this.error.set('Capital Pools could not be loaded. Reload this page.')}); }
   load() {
     this.loading.set(true); this.error.set('');
     forkJoin({ options: this.api.options(), track: this.id ? this.api.get(this.id) : of(null) }).subscribe({
       next: ({ options, track }) => {
         this.options.set(options); this.track.set(track);
-        if (track) this.draft = { name: track.name, description: track.description, status: track.status, purpose: track.purpose, notes: track.notes, revision: track.revision };
+        if (track) this.draft = { name: track.name, description: track.description, status: track.status, purpose: track.purpose, notes: track.notes, defaultCapitalPoolId: track.defaultCapitalPoolId, revision: track.revision };
         this.ready.set(true); this.loading.set(false);
       },
       error: error => { this.error.set(requestError(error)); this.loading.set(false); },

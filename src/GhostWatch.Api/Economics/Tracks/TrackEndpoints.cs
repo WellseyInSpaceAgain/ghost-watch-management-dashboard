@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace GhostWatch.Api.Economics.Tracks;
 
-public sealed record TrackInput(string? Name, string? Description, string? Status, string? Purpose, string? Notes, int? Revision);
+public sealed record TrackInput(string? Name, string? Description, string? Status, string? Purpose, string? Notes, int? Revision, Guid? DefaultCapitalPoolId = null);
 
 public static class TrackEndpoints
 {
@@ -23,6 +23,7 @@ public static class TrackEndpoints
                 ? Results.Ok(track) : Results.NotFound());
         group.MapPost("/", async (TrackInput input, GhostWatchDbContext db, CancellationToken ct) =>
         {
+            if (input.DefaultCapitalPoolId is { } poolId && !await db.CapitalPools.AnyAsync(x => x.Id == poolId, ct)) return Results.ValidationProblem(new Dictionary<string, string[]> { ["defaultCapitalPoolId"] = ["Choose an existing Capital Pool."] });
             var errors = Validate(input, false);
             if (errors.Count > 0) return Results.ValidationProblem(errors);
             var track = new EconomyTrack();
@@ -33,6 +34,7 @@ public static class TrackEndpoints
         });
         group.MapPut("/{id:guid}", async (Guid id, TrackInput input, GhostWatchDbContext db, CancellationToken ct) =>
         {
+            if (input.DefaultCapitalPoolId is { } poolId && !await db.CapitalPools.AnyAsync(x => x.Id == poolId, ct)) return Results.ValidationProblem(new Dictionary<string, string[]> { ["defaultCapitalPoolId"] = ["Choose an existing Capital Pool."] });
             var errors = Validate(input, true);
             if (errors.Count > 0) return Results.ValidationProblem(errors);
             var track = await db.EconomyTracks.SingleOrDefaultAsync(x => x.Id == id, ct);
@@ -65,6 +67,7 @@ public static class TrackEndpoints
 
     private static void Apply(EconomyTrack track, TrackInput input)
     {
+        track.DefaultCapitalPoolId = input.DefaultCapitalPoolId;
         track.Name = input.Name!.Trim();
         track.Description = input.Description?.Trim() ?? "";
         track.Purpose = input.Purpose!;
