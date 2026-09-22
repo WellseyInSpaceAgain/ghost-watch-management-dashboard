@@ -1,7 +1,7 @@
 import { Component, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { DatePipe } from '@angular/common';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { forkJoin } from 'rxjs';
 
@@ -10,7 +10,7 @@ interface Character { characterId: number; characterName: string; connectedAt: s
 
 @Component({
   selector: 'app-characters',
-  imports: [DatePipe, MatButtonModule],
+  imports: [DatePipe, MatButtonModule, RouterLink],
   template: `
     <p class="eyebrow">EVE DATA / CHARACTERS</p>
     <div class="page-heading"><div><h1>Characters</h1><p class="muted">Connect the characters supporting your economic programmes.</p></div>
@@ -32,12 +32,12 @@ interface Character { characterId: number; characterName: string; connectedAt: s
         @else {
           <div class="table-wrap"><table><caption class="visually-hidden">Authenticated EVE characters</caption><thead><tr><th>Character</th><th>EVE ID</th><th>Last authenticated</th></tr></thead>
           <tbody>@for (character of characters(); track character.characterId) {
-            <tr><td>{{ character.characterName }}</td><td>{{ character.characterId }}</td><td>{{ character.lastAuthenticatedAt | date:'medium' }}</td></tr>
+            <tr><td><a [routerLink]="['/characters', character.characterId]">{{ character.characterName }}</a></td><td>{{ character.characterId }}</td><td>{{ character.lastAuthenticatedAt | date:'medium' }}</td></tr>
           }</tbody></table></div>
           <p class="muted" style="margin-top:16px">Use the login button again to add another character or reconnect an existing one. Select the character on EVE's login page.</p>
         }
       </section>
-      <p class="muted">Connections currently save identity and authorisation only. ESI data refresh, accounts and economic assignments are the next stage.</p>
+      <p class="muted">Open a character to refresh wallets, skills, skill queues, market orders and industry jobs. Accounts and economic assignments are not available yet.</p>
       <details class="panel"><summary>Requested EVE permissions</summary><p class="muted">These permissions cover character economics in the project brief. Corporation access is not requested.</p><ul>
         @for (scope of config()?.scopes; track scope) { <li><code>{{ scope }}</code></li> }
       </ul></details>

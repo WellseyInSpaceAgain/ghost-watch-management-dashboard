@@ -1,4 +1,5 @@
 using GhostWatch.Api.Data;
+using GhostWatch.Api.Eve.Esi;
 using GhostWatch.Api.Eve.Auth;
 using Microsoft.AspNetCore.DataProtection;
 using GhostWatch.Api.Economics.Tracks;
@@ -25,6 +26,19 @@ builder.Services.AddMemoryCache();
 builder.Services.AddSingleton<PendingLogins>();
 builder.Services.AddSingleton<CharacterGate>();
 builder.Services.AddScoped<CharacterAccessTokens>();
+builder.Services.AddScoped<ICharacterAccessTokens>(services => services.GetRequiredService<CharacterAccessTokens>());
+builder.Services.AddSingleton<EsiThrottle>();
+builder.Services.AddScoped<CharacterRefresh>();
+builder.Services.AddSingleton<RefreshQueue>();
+builder.Services.AddHostedService(services => services.GetRequiredService<RefreshQueue>());
+builder.Services.AddHttpClient<EsiClient>(http =>
+{
+    http.BaseAddress = new Uri("https://esi.evetech.net/");
+    http.Timeout = TimeSpan.FromSeconds(45);
+    http.DefaultRequestHeaders.Add("X-Compatibility-Date", "2026-09-22");
+    http.DefaultRequestHeaders.Add("User-Agent", "GhostWatchManagementDashboard/0.1");
+    http.DefaultRequestHeaders.Add("Accept-Language", "en");
+}).ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false }).RemoveAllLoggers();
 builder.Services.Configure<EveOptions>(options =>
 {
     if (builder.Environment.IsDevelopment()) options.CallbackUrl = "http://localhost:4200/api/auth/eve/callback";
@@ -50,6 +64,7 @@ app.UseDefaultFiles();
 app.UseStaticFiles();
 app.MapGet("/api/health", () => Results.Ok(new { application = "Ghost Watch Management Dashboard", status = "ok" }));
 app.MapTracks();
+app.MapEveData();
 app.MapControllers();
 app.MapGet("/api/eve/characters", async (GhostWatchDbContext db, CancellationToken ct) =>
     await db.EveCharacters.AsNoTracking().OrderBy(x => x.CharacterName)

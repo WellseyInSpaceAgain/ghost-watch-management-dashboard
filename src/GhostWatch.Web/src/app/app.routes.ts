@@ -6,5 +6,6 @@ export const routes: Routes = [
   { path: 'tracks/new', loadComponent: () => import('./tracks/track-detail').then(m => m.TrackDetail) },
   { path: 'tracks/:id', loadComponent: () => import('./tracks/track-detail').then(m => m.TrackDetail) },
   { path: 'characters', loadComponent: () => import('./characters').then(m => m.Characters) },
+  { path: 'characters/:id', loadComponent: () => import('./character-data').then(m => m.CharacterDataPage) },
   { path: '**', redirectTo: '' },
 ];

@@ -1,6 +1,6 @@
 # EVE SSO setup
 
-Ghost Watch now supports character login and protected refresh-token persistence. Live authentication remains unverified until you create the registration below and connect a character. ESI factual data refresh is a separate, upcoming feature.
+Ghost Watch now supports character login and protected refresh-token persistence. Live authentication remains unverified until you create the registration below and connect a character. After connecting, open a character and use Refresh EVE data to collect wallets, skills, skill queue, market orders and industry jobs.
 
 ## Register Ghost Watch
 
@@ -31,7 +31,7 @@ esi-characters.read_loyalty.v1
 esi-planets.manage_planets.v1
 ```
 
-These scopes cover the character economics requested by the brief. They are granted at connection time; this milestone does not yet collect the corresponding ESI data.
+These scopes cover the character economics requested by the brief. They are granted at connection time; this milestone collects the five sections above. Assets, blueprints, standings, loyalty points and PI refresh follow in a later slice.
 
 ## Configure a container
 
@@ -95,4 +95,4 @@ A restart during an unfinished login invalidates that pending login; simply star
 
 The application uses its own ASP.NET Data Protection purpose and persists its key ring under `App_Data/keys` or `/app/data/keys`. The key ring is protected by filesystem access, not an external key-management service. Back up the entire stopped application's data directory/volume: the database alone is insufficient to decrypt tokens later. Losing the keys requires reconnecting characters.
 
-Local tests exercise signed JWTs, callback state, PKCE, token protection and rotation against a fake EVE server. They do not establish that live SSO, live token refresh or multi-character ESI refresh works. Record those results only after actual verification. No ESI refresh UI is offered yet.
+Local tests exercise signed JWTs, callback state, PKCE, token protection and rotation against a fake EVE server. They do not establish that live SSO, live token refresh or multi-character ESI refresh works. Record those results only after actual verification. Use the character detail page to verify refresh, then repeat with a second character. Confirm last-success timestamps and retained facts after errors; do not mistake mocked test results for live verification.

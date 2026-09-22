@@ -1,16 +1,30 @@
 using GhostWatch.Api.Economics.Tracks;
 using GhostWatch.Api.Eve;
+using GhostWatch.Api.Eve.Esi;
 using Microsoft.EntityFrameworkCore;
 
 namespace GhostWatch.Api.Data;
 
 public sealed class GhostWatchDbContext(DbContextOptions<GhostWatchDbContext> options) : DbContext(options)
 {
+    public DbSet<EveSection> EveSections => Set<EveSection>();
+    public DbSet<EveIndustryJob> EveIndustryJobs => Set<EveIndustryJob>();
     public DbSet<EveCharacter> EveCharacters => Set<EveCharacter>();
     public DbSet<EconomyTrack> EconomyTracks => Set<EconomyTrack>();
 
     protected override void OnModelCreating(ModelBuilder model)
     {
+        var section = model.Entity<EveSection>();
+        section.HasKey(x => new { x.CharacterId, x.Name });
+        section.HasOne<EveCharacter>().WithMany().HasForeignKey(x => x.CharacterId).OnDelete(DeleteBehavior.Restrict);
+        var job = model.Entity<EveIndustryJob>();
+        job.HasKey(x => new { x.CharacterId, x.JobId });
+        job.HasOne<EveCharacter>().WithMany().HasForeignKey(x => x.CharacterId).OnDelete(DeleteBehavior.Restrict);
+        section.Property(x => x.AttemptedAt).HasConversion(v => v, v => DateTime.SpecifyKind(v, DateTimeKind.Utc));
+        section.Property(x => x.UpdatedAt).HasConversion(v => v, v => v.HasValue ? DateTime.SpecifyKind(v.Value, DateTimeKind.Utc) : (DateTime?)null);
+        job.Property(x => x.StartDate).HasConversion(v => v, v => DateTime.SpecifyKind(v, DateTimeKind.Utc));
+        job.Property(x => x.EndDate).HasConversion(v => v, v => DateTime.SpecifyKind(v, DateTimeKind.Utc));
+        job.Property(x => x.LastSeenAt).HasConversion(v => v, v => DateTime.SpecifyKind(v, DateTimeKind.Utc));
         var character = model.Entity<EveCharacter>();
         character.ToTable("EveCharacters");
         character.HasKey(x => x.CharacterId);

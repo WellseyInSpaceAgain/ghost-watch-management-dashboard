@@ -48,6 +48,19 @@ A small manual Track slice is independent of SSO and makes the foundation usable
 - 23 backend tests and four browser tests pass. Live EVE authentication is not established by these fake-provider tests.
 - `docs/eve-sso-setup.md` explains registration and local credentials; the user has not registered Ghost Watch yet.
 
-Next milestone: complete interactive login verification after local registration, then implement the ESI client and factual character refresh incrementally. Do not mark live SSO or multi-character ESI verification complete using mocked tests.
+Live integration verification remains pending local registration and actual character login. Do not mark live SSO or multi-character ESI verification complete using mocked tests.
 
-Host Podman is available through `distrobox-host-exec` from this Distrobox. The image builds and runs as a non-root user; migrations and named-volume persistence pass the repeatable container smoke test. Docker Compose itself has not been executed. The backend and compiled frontend also build and run directly.
+Host Podman is available through `distrobox-host-exec` from this Distrobox. The image builds and runs as a non-root user; migrations and named-volume persistence pass the repeatable container smoke test. Startup and verification now use `compose.yaml` via host `podman compose`; the Compose provider and data persistence have been verified. The backend and compiled frontend also build and run directly.
+
+## First ESI refresh milestone
+
+- Selectively adapted the reference ESI HTTP client: bounded retries, shared rate/error-budget cooldown, token/character-isolated caching and complete-page collection.
+- Added queued refresh for wallets, skills, skill queue, industry jobs and market orders, with duplicate suppression and per-character progress. Pending queue work is in memory and must be requested again after an application restart.
+- `EveSection` stores only factual data with last-attempt/last-success/error metadata. Failed or malformed responses retain previous facts.
+- `EveIndustryJob` uses `(CharacterId, JobId)` identity, raw payloads and last-seen timestamps. Refresh upserts facts; disappearance from ESI does not delete historical rows. No Run relationship exists yet.
+- Migration `AddEveFactualData` creates the new factual tables without modifying Track data.
+- Character data page shows wallet, trained/active capacity and jobs, plus inspectable raw records and section freshness. Missing active skills produce unknown active capacity. Subscription state, free slots and recipe eligibility are not inferred.
+- 31 backend tests and five browser tests pass; Angular production build and Compose container smoke verification pass.
+- Compose workflow includes tracked `.env.example`; real `.env` stays ignored. Tests use a unique Compose project, random loopback port and empty credentials.
+
+Next: continue the remaining factual EVE sections, name/category enrichment, account grouping and broader economic assessments. Live SSO/ESI and multiple-character live refresh still require actual user configuration and login.

@@ -1,0 +1,101 @@
+import { Component, DestroyRef, inject, signal } from '@angular/core';
+import { DatePipe, DecimalPipe, JsonPipe } from '@angular/common';
+import { HttpClient } from '@angular/common/http';
+import { ActivatedRoute, RouterLink } from '@angular/router';
+import { MatButtonModule } from '@angular/material/button';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+
+interface Section { name: string; attemptedAt: string | null; updatedAt: string | null; error: string | null; data: unknown; }
+interface Capacity { manufacturingJobs: number; researchJobs: number; reactionJobs: number; marketOrders: number; piColonies: number; }
+interface Job { jobId: number; activityId: number; productTypeId: number | null; blueprintTypeId: number; runs: number; status: string; startDate: string; endDate: string; lastSeenAt: string; }
+interface CharacterData {
+  character: { characterId: number; characterName: string };
+  progress: { state: string; section: string | null; error: string | null };
+  sections: Section[];
+  capacity: { trained: Capacity; active: Capacity | null } | null;
+  jobs: Job[];
+}
+
+@Component({
+  selector: 'app-character-data',
+  imports: [DatePipe, DecimalPipe, JsonPipe, RouterLink, MatButtonModule],
+  template: `
+    <a routerLink="/characters" class="back-link">← Characters</a>
+    <p class="eyebrow">EVE DATA / CHARACTER</p>
+    <div class="page-heading"><div><h1>{{ data()?.character?.characterName || 'Character data' }}</h1><p class="muted">Factual EVE state · local Track planning remains separate</p></div>
+      <button mat-flat-button (click)="refresh()" [disabled]="!data() || busy() || starting()">{{ busy() || starting() ? 'Refresh in progress…' : 'Refresh EVE data' }}</button></div>
+    @if (error()) { <p class="error" role="alert">{{ error() }} <button mat-button (click)="load()">Retry loading</button></p> }
+    @if (data(); as current) {
+      <p role="status">Refresh: {{ current.progress.state }} @if (current.progress.section) { · {{ label(current.progress.section) }} }</p>
+      @if (current.progress.error) { <p class="error" role="alert">{{ current.progress.error }}</p> }
+      @if (current.progress.state === 'partial') { <p class="notice">Some sections could not be refreshed. Check their errors and last successful update times below.</p> }
+      <section class="panel"><h2>Wallet balance</h2>
+        @if (wallet() !== null) { <p class="balance">{{ wallet() | number:'1.2-2' }} ISK</p> }
+        @else { <p class="muted">Unknown — refresh this character to collect a balance.</p> }
+        <p class="muted">A factual character wallet; conceptual Capital Pools will be managed separately.</p>
+      </section>
+      <section class="panel"><h2>Skill capacity</h2>
+        @if (current.capacity; as capacity) {
+          <div class="table-wrap"><table><thead><tr><th>Capacity</th><th>Trained potential</th><th>Active skill potential</th></tr></thead><tbody>
+            @for (metric of capacities; track metric.key) { <tr><td>{{ metric.label }}</td><td>{{ capacity.trained[metric.key] }}</td><td>{{ capacity.active ? capacity.active[metric.key] : 'Unknown' }}</td></tr> }
+          </tbody></table></div>
+        } @else { <p class="muted">Unknown — no successful skill data refresh yet.</p> }
+        <p class="muted" style="margin-top:16px">These are skill-based limits, not free slots or recipe eligibility. PI skill potential does not verify subscription, export or facility access. Missing active skill levels remain unknown.</p>
+      </section>
+      <section class="panel"><h2>Industry jobs</h2>
+        @if (current.jobs.length) {
+          <div class="table-wrap"><table><thead><tr><th>Job</th><th>Activity</th><th>Product / Blueprint</th><th>Runs</th><th>Status</th><th>End</th><th>Last seen</th></tr></thead><tbody>
+          @for (job of current.jobs; track job.jobId) { <tr><td>{{ job.jobId }}</td><td>{{ activity(job.activityId) }}</td><td>Type {{ job.productTypeId ?? job.blueprintTypeId }}</td><td>{{ job.runs }}</td><td>{{ job.status }}</td><td>{{ job.endDate | date:'medium' }}</td><td>{{ job.lastSeenAt | date:'medium' }}</td></tr> }
+          </tbody></table></div>
+        } @else { <p class="muted">{{ section('industryJobs')?.updatedAt ? 'No industry jobs returned by EVE.' : 'Industry jobs have not been collected yet.' }}</p> }
+        <p class="muted" style="margin-top:16px">Jobs remain in local history when they leave EVE's response window. Status is last observed, not inferred. Product names and Run associations are not available yet.</p>
+      </section>
+      <section class="panel"><h2>Data freshness and collected records</h2><p class="muted">Errors retain the last successful result. Expand a section to inspect its factual EVE records, including skill queue and market orders.</p>
+        @for (section of current.sections; track section.name) {
+          <details class="data-section"><summary>{{ label(section.name) }} · {{ section.updatedAt ? 'Collected' : 'Not collected' }}{{ section.error ? ' · Refresh failed' : '' }}</summary>
+            <p class="muted">Last successful update: {{ section.updatedAt ? (section.updatedAt | date:'medium') : 'Never' }} · Last attempt: {{ section.attemptedAt ? (section.attemptedAt | date:'medium') : 'Never' }}</p>
+            @if (section.error) { <p class="error">{{ section.error }}</p> }
+            <pre>{{ section.data | json }}</pre>
+          </details>
+        }
+      </section>
+    } @else if (!error()) { <p role="status">Loading character data…</p> }
+  `,
+  styles: `.balance { font-size: 24px; } .data-section { border-top: 1px solid #29353d; padding: 12px 0; } summary { cursor: pointer; } details p { margin-top: 12px; } pre { overflow: auto; max-height: 360px; font-size: 12px; }`,
+})
+export class CharacterDataPage {
+  private readonly http = inject(HttpClient);
+  private readonly destroyRef = inject(DestroyRef);
+  private readonly id = inject(ActivatedRoute).snapshot.paramMap.get('id');
+  private timer: ReturnType<typeof setTimeout> | undefined;
+  private request = 0;
+  readonly data = signal<CharacterData | null>(null);
+  readonly error = signal('');
+  readonly starting = signal(false);
+  readonly capacities: { key: keyof Capacity; label: string }[] = [
+    { key: 'manufacturingJobs', label: 'Manufacturing jobs' }, { key: 'researchJobs', label: 'Research jobs' },
+    { key: 'reactionJobs', label: 'Reaction jobs' }, { key: 'marketOrders', label: 'Market orders' }, { key: 'piColonies', label: 'PI colonies' },
+  ];
+  constructor() { this.destroyRef.onDestroy(() => clearTimeout(this.timer)); this.load(); }
+  busy() { return ['queued', 'running'].includes(this.data()?.progress.state ?? ''); }
+  section(name: string) { return this.data()?.sections.find(section => section.name === name); }
+  wallet(): number | null { const value = this.section('wallet')?.data; return typeof value === 'number' ? value : null; }
+  label(name: string) { return ({ wallet: 'Wallet', skills: 'Skills', skillQueue: 'Skill queue', industryJobs: 'Industry jobs', marketOrders: 'Market orders' } as Record<string, string>)[name] ?? name; }
+  activity(id: number) { return ({ 1: 'Manufacturing', 3: 'Time research', 4: 'Material research', 5: 'Copying', 8: 'Invention', 11: 'Reactions' } as Record<number, string>)[id] ?? `Activity ${id}`; }
+  load() {
+    clearTimeout(this.timer);
+    const request = ++this.request;
+    this.http.get<CharacterData>(`/api/eve/characters/${this.id}/data`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: data => { if (request !== this.request) return; this.data.set(data); this.error.set(''); if (this.busy()) this.timer = setTimeout(() => this.load(), 1500); },
+      error: error => { if (request === this.request) this.error.set(error.status === 404 ? 'This character was not found.' : 'Character data could not be loaded. Try again.'); },
+    });
+  }
+  refresh() {
+    if (this.busy() || this.starting()) return;
+    this.starting.set(true); this.error.set('');
+    this.http.post(`/api/eve/characters/${this.id}/refresh`, {}, { headers: { 'X-Ghost-Watch': '1' } }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: () => { this.starting.set(false); this.load(); },
+      error: error => { this.starting.set(false); if (error.status === 409) this.load(); else this.error.set('Refresh could not be started. Try again.'); },
+    });
+  }
+}

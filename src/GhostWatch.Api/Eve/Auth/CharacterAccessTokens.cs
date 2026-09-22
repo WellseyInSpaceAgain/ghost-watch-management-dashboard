@@ -3,8 +3,13 @@ using Microsoft.EntityFrameworkCore;
 
 namespace GhostWatch.Api.Eve.Auth;
 
-// Future ESI services use this entry point; refresh-token rotation is serialised per character.
-public sealed class CharacterAccessTokens(GhostWatchDbContext db, SsoClient sso, CharacterGate gates)
+public interface ICharacterAccessTokens
+{
+    Task<string> Get(long characterId, CancellationToken ct);
+}
+
+// ESI services use this entry point; refresh-token rotation is serialised per character.
+public sealed class CharacterAccessTokens(GhostWatchDbContext db, SsoClient sso, CharacterGate gates) : ICharacterAccessTokens
 {
     public async Task<string> Get(long characterId, CancellationToken ct)
     {
