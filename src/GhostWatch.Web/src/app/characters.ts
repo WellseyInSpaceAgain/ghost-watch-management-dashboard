@@ -37,7 +37,7 @@ interface Character { characterId: number; characterName: string; connectedAt: s
           <p class="muted" style="margin-top:16px">Use the login button again to add another character or reconnect an existing one. Select the character on EVE's login page.</p>
         }
       </section>
-      <p class="muted">Open a character to refresh wallets, skills, skill queues, market orders and industry jobs. Accounts and economic assignments are not available yet.</p>
+      <p class="muted">Open a character to refresh wallets, skills, skill queues, market orders, industry jobs, assets and blueprints. Accounts and economic assignments are not available yet.</p>
       <details class="panel"><summary>Requested EVE permissions</summary><p class="muted">These permissions cover character economics in the project brief. Corporation access is not requested.</p><ul>
         @for (scope of config()?.scopes; track scope) { <li><code>{{ scope }}</code></li> }
       </ul></details>

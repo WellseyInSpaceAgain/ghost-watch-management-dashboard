@@ -67,10 +67,18 @@ Future local account state, assignments, Track links and Run annotations must be
 
 `Eve/Auth/SsoClient.cs` selectively ports the inspected metadata, Basic token exchange, JWT verification and refresh-token helper with Ghost Watch namespaces, context and data-protection purpose. The callback and state store were written around the new model, with atomic state consumption and explicit public character projections. Changed ownership is rejected rather than clearing exporter snapshot sections. No exporter snapshot architecture was adopted.
 
-Character connections and the refresh-token service pass signed-token fake-provider tests. Live login and refresh are unverified; the first ESI client/section/capacity slice is now implemented, while broader economic assessments and name enrichment remain pending. Current SSO guidance was also checked against [EVE's current documentation](https://developers.eveonline.com/docs/services/sso/).
+Character connections and the refresh-token service pass signed-token fake-provider tests. The user has manually verified the character workflow; the first ESI client/section/capacity slice is now implemented, with inventory type/group enrichment now added; broader assessments and other name enrichment remain pending. Current SSO guidance was also checked against [EVE's current documentation](https://developers.eveonline.com/docs/services/sso/).
 
 ## Implemented ESI slice
 
 `Eve/Esi/EsiClient.cs` selectively adapts the reference client with relative-path validation, no redirect following, cache partitioning, retry/error-budget behavior and full-page collection. `CapacityCalculator` adapts its trained/active slot formulas. Refresh orchestration follows the reference's last-success retention pattern but persists stable industry-job rows separately from replaceable section JSON and future local Run relationships.
 
-Currently called endpoints: character wallet, skills, skillqueue, industry/jobs (`include_completed=true`), and orders, using their scope rows above. Compatibility date is pinned to `2026-09-22`, matching the inspected reference. Pagination is implemented and tested but will first be used by asset/blueprint refresh. No exporter database, migrations or runtime data were imported.
+Currently called endpoints: character wallet, skills, skillqueue, industry/jobs (`include_completed=true`), orders, assets and blueprints, using their scope rows above. Compatibility date is pinned to `2026-09-22`, matching the inspected reference. Assets and blueprints now use full X-Pages pagination with replacement only after all pages validate. No exporter database, migrations or runtime data were imported.
+
+## Inventory reference adaptation
+
+Reviewed `NameResolver.Enrich`, `NameResolver.Cached` and `AssetClassifier` read-only before implementing this feature. The new `InventoryMetadata` caches public `universe/types/{typeId}` and `universe/groups/{groupId}` responses for 30 days. Public lookups carry no bearer token and are distinct from character sections. Private structure lookup has not been ported and no new structure scope is requested.
+
+`InventoryProjection` adapts the exact group/category mappings and the reference's known-parent-item/location-flag availability rules. It keeps raw ESI sections unchanged, deriving named/category/availability views on read. Blueprint quantity `-2` means a copy; `-1` and positive quantities represent originals, with positive values preserving stack count. Copy run counts are preserved, including zero. Missing metadata remains explicitly unknown, rather than inventing categories from item-name fragments.
+
+Unlike the exporter's in-place enrichment, failed names/categories produce a separate section warning while complete raw inventory is saved. Failed or malformed inventory pages preserve the prior complete section. Location IDs/flags are displayed without inferring structure access. No inventory reservation or production dependency model is implemented.

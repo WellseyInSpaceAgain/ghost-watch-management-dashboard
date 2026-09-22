@@ -4,9 +4,9 @@ A local Ghost Watch operations console. Economics is the first module; the full 
 
 ## Current milestone
 
-Implemented: dark responsive console, active Track overview, create/edit/archive/restore Economy Tracks, durable SQLite storage, API validation, revision checks that prevent stale edits from overwriting newer notes, EVE SSO character connections with protected refresh-token storage, and queued ESI refresh for wallets, skills, skill queues, market orders and industry jobs. Archived Tracks retain their IDs, notes and creation dates.
+Implemented: dark responsive console, active Track overview, create/edit/archive/restore Economy Tracks, durable SQLite storage, API validation, revision checks that prevent stale edits from overwriting newer notes, EVE SSO character connections with protected refresh-token storage, and queued ESI refresh for wallets, skills, skill queues, market orders, industry jobs, assets and blueprints. Archived Tracks retain their IDs, notes and creation dates.
 
-The rest of the brief is still pending: assets/blueprints/PI/standings/LP refresh, account grouping, financial workflows, Runs, Capital Pools, knowledge records, Objectives, snapshots and charts. The headline metrics currently show explicit unavailable states. Live EVE authentication remains pending your separate SSO registration; automated tests use a fake EVE server.
+The rest of the brief is still pending: PI/standings/LP refresh, account grouping, financial workflows, Runs, Capital Pools, knowledge records, Objectives, snapshots and charts. The headline metrics currently show explicit unavailable states. The user has manually verified the character connection/refresh workflow. The new assets/blueprints feature is covered by simulated EVE tests; live inventory verification remains to be done.
 
 Start with [EVE SSO setup](docs/eve-sso-setup.md) to register the application and connect characters. For host Podman from Distrobox, see [container instructions](docs/containers.md).
 
@@ -58,7 +58,7 @@ This is a new application, database and Git history. The reference exporter rema
 
 The API applies committed migrations on startup. Default database: `src/GhostWatch.Api/App_Data/ghost-watch.db` when launched with `dotnet run`. Override the directory with `Storage__Directory` (prefer an absolute path). There is no automatic sample-data seeding.
 
-The current entities are `EconomyTrack`, `EveCharacter`, `EveSection` and `EveIndustryJob`, with local-management tables separate from EVE identity/facts. Migrations: `AddEconomyTracks`, `AddEveCharacterAuthentication` and `AddEveFactualData`. Capital Pool and character relationships, selected KPIs, and financial aggregates will be added with their owning features.
+The current entities are `EconomyTrack`, `EveCharacter`, `EveSection`, `EveIndustryJob` and `PublicEveLookup`, with local-management tables separate from EVE identity/facts. Migrations: `AddEconomyTracks`, `AddEveCharacterAuthentication`, `AddEveFactualData` and `AddInventoryMetadata`. Capital Pool and character relationships, selected KPIs, and financial aggregates will be added with their owning features.
 
 ```bash
 dotnet ef migrations has-pending-model-changes --project src/GhostWatch.Api
@@ -104,4 +104,12 @@ Open **Characters**, select a connected character, then choose **Refresh EVE dat
 
 Wallet balance, trained/active skill capacity and industry jobs have dedicated views. Raw collected records expose skills, queue and market orders for inspection; name enrichment and richer record views follow later. Each section shows attempt/success timestamps and safe errors. Failed responses retain previous data; jobs retain stable identity and history when absent from later ESI responses. No refresh writes to Economy Tracks.
 
-Live SSO and ESI verification remains pending actual connected characters. The automated refresh tests use simulated EVE responses, including two-character refresh, failures, retries and malformed payloads.
+The character workflow has been manually verified by the user. This does not imply that the new inventory feature has been live-verified. The automated refresh tests use simulated EVE responses, including two-character refresh, failures, retries and malformed payloads.
+
+## Assets and blueprints
+
+After updating the application with Compose, open a connected character and refresh. No additional scopes are requested beyond the original asset/blueprint scopes. The first inventory refresh may take longer while public type and group metadata is collected; it is cached for 30 days across characters.
+
+The Assets panel offers searchable stock summaries and individual item locations, availability/category filters, and 25-row pagination. Loose hangar stock is separated from fitted/contained assets; ambiguous locations remain unknown. Blueprint tables show originals/copies, stack quantity, material/time efficiency and copy runs remaining. Original runs display as Unlimited, and a copy with zero runs remains zero.
+
+All ESI pages must succeed and validate before the previous collection is replaced. A failed page retains the previous complete data and timestamp. Metadata failures instead save the complete raw inventory with a separate warning, using known names or explicit type-ID/unknown-category fallbacks. Location names, structure access and inventory reservation are not implemented; locations are shown as IDs and flags.

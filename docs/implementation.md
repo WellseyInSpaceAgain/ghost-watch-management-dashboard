@@ -46,9 +46,9 @@ A small manual Track slice is independent of SSO and makes the foundation usable
 - Character list, reconnect without duplicate identities, explicit configuration and safe error states.
 - Changed character ownership is rejected for manual review; local Track data is preserved.
 - 23 backend tests and four browser tests pass. Live EVE authentication is not established by these fake-provider tests.
-- `docs/eve-sso-setup.md` explains registration and local credentials; the user has not registered Ghost Watch yet.
+- `docs/eve-sso-setup.md` explains registration and local credentials; the user has subsequently registered and manually verified the character workflow.
 
-Live integration verification remains pending local registration and actual character login. Do not mark live SSO or multi-character ESI verification complete using mocked tests.
+The user reports manual verification of the character workflow. Do not mark live SSO or multi-character ESI verification complete using mocked tests.
 
 Host Podman is available through `distrobox-host-exec` from this Distrobox. The image builds and runs as a non-root user; migrations and named-volume persistence pass the repeatable container smoke test. Startup and verification now use `compose.yaml` via host `podman compose`; the Compose provider and data persistence have been verified. The backend and compiled frontend also build and run directly.
 
@@ -63,4 +63,15 @@ Host Podman is available through `distrobox-host-exec` from this Distrobox. The 
 - 31 backend tests and five browser tests pass; Angular production build and Compose container smoke verification pass.
 - Compose workflow includes tracked `.env.example`; real `.env` stays ignored. Tests use a unique Compose project, random loopback port and empty credentials.
 
-Next: continue the remaining factual EVE sections, name/category enrichment, account grouping and broader economic assessments. Live SSO/ESI and multiple-character live refresh still require actual user configuration and login.
+Next: continue PI/standings/loyalty points, account grouping and broader economic assessments. The user has manually verified the character workflow; subsequent data features require their own verification.
+
+## Assets and blueprints milestone
+
+- Added full paginated assets and blueprint refresh using existing ESI scopes.
+- Validate complete collections, including duplicate item IDs across pages, before replacing prior data. Late-page failures preserve prior facts and timestamps.
+- Added `PublicEveLookup` for shared public type/group metadata and `EveSection.Warning` to distinguish incomplete metadata from failed data collection. Migration: `AddInventoryMetadata`.
+- Public metadata is cached for 30 days; missing names fall back to type IDs and missing categories remain unknown. No character token is sent to public lookups.
+- Adapted exact inventory categories and available/fitted-or-contained/unknown classification from the reference. Blueprint originals/copies, stacks, efficiencies and remaining copy runs are explicit.
+- Character inventory tables support search, availability/category/kind filters, stock vs item-location views and pagination. Location names and structure resolution remain deferred.
+- 48 backend tests pass, including upgrading the previous schema while retaining character facts and Track notes. Six browser tests cover the UI; production builds and isolated Compose smoke verification pass.
+- Existing live character workflow was manually verified by the user. New live inventory refresh is not yet independently verified. Development/tests did not read credentials, copy authentication data or modify the normal application database.

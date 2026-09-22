@@ -29,5 +29,5 @@ test('refresh shows progress and retains previous wallet on partial failure', as
   await expect(page.getByText('123,456.78 ISK')).toBeVisible();
   await page.getByText('Wallet · Collected · Refresh failed', { exact: true }).click();
   await expect(page.getByText('Access denied or scope missing.', { exact: false })).toBeVisible();
-  await expect(page.getByText('Some sections could not be refreshed.', { exact: false })).toBeVisible();
+  await expect(page.getByText('Some sections could not be refreshed', { exact: false })).toBeVisible();
 });

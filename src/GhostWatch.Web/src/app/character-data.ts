@@ -1,3 +1,4 @@
+import { InventoryData, InventoryView } from './inventory-view';
 import { Component, DestroyRef, inject, signal } from '@angular/core';
 import { DatePipe, DecimalPipe, JsonPipe } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
@@ -5,7 +6,7 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
-interface Section { name: string; attemptedAt: string | null; updatedAt: string | null; error: string | null; data: unknown; }
+interface Section { name: string; attemptedAt: string | null; updatedAt: string | null; error: string | null; warning?: string | null; data: unknown; }
 interface Capacity { manufacturingJobs: number; researchJobs: number; reactionJobs: number; marketOrders: number; piColonies: number; }
 interface Job { jobId: number; activityId: number; productTypeId: number | null; blueprintTypeId: number; runs: number; status: string; startDate: string; endDate: string; lastSeenAt: string; }
 interface CharacterData {
@@ -14,11 +15,12 @@ interface CharacterData {
   sections: Section[];
   capacity: { trained: Capacity; active: Capacity | null } | null;
   jobs: Job[];
+  inventory?: InventoryData;
 }
 
 @Component({
   selector: 'app-character-data',
-  imports: [DatePipe, DecimalPipe, JsonPipe, RouterLink, MatButtonModule],
+  imports: [DatePipe, DecimalPipe, JsonPipe, RouterLink, MatButtonModule, InventoryView],
   template: `
     <a routerLink="/characters" class="back-link">← Characters</a>
     <p class="eyebrow">EVE DATA / CHARACTER</p>
@@ -28,7 +30,7 @@ interface CharacterData {
     @if (data(); as current) {
       <p role="status">Refresh: {{ current.progress.state }} @if (current.progress.section) { · {{ label(current.progress.section) }} }</p>
       @if (current.progress.error) { <p class="error" role="alert">{{ current.progress.error }}</p> }
-      @if (current.progress.state === 'partial') { <p class="notice">Some sections could not be refreshed. Check their errors and last successful update times below.</p> }
+      @if (current.progress.state === 'partial') { <p class="notice">Some sections could not be refreshed, or names and categories are incomplete. Check errors, warnings and last successful update times below.</p> }
       <section class="panel"><h2>Wallet balance</h2>
         @if (wallet() !== null) { <p class="balance">{{ wallet() | number:'1.2-2' }} ISK</p> }
         @else { <p class="muted">Unknown — refresh this character to collect a balance.</p> }
@@ -50,11 +52,13 @@ interface CharacterData {
         } @else { <p class="muted">{{ section('industryJobs')?.updatedAt ? 'No industry jobs returned by EVE.' : 'Industry jobs have not been collected yet.' }}</p> }
         <p class="muted" style="margin-top:16px">Jobs remain in local history when they leave EVE's response window. Status is last observed, not inferred. Product names and Run associations are not available yet.</p>
       </section>
+      <app-inventory-view [inventory]="current.inventory ?? null" [sections]="current.sections" />
       <section class="panel"><h2>Data freshness and collected records</h2><p class="muted">Errors retain the last successful result. Expand a section to inspect its factual EVE records, including skill queue and market orders.</p>
         @for (section of current.sections; track section.name) {
           <details class="data-section"><summary>{{ label(section.name) }} · {{ section.updatedAt ? 'Collected' : 'Not collected' }}{{ section.error ? ' · Refresh failed' : '' }}</summary>
             <p class="muted">Last successful update: {{ section.updatedAt ? (section.updatedAt | date:'medium') : 'Never' }} · Last attempt: {{ section.attemptedAt ? (section.attemptedAt | date:'medium') : 'Never' }}</p>
             @if (section.error) { <p class="error">{{ section.error }}</p> }
+            @if (section.warning) { <p class="notice">{{ section.warning }}</p> }
             <pre>{{ section.data | json }}</pre>
           </details>
         }
@@ -80,7 +84,7 @@ export class CharacterDataPage {
   busy() { return ['queued', 'running'].includes(this.data()?.progress.state ?? ''); }
   section(name: string) { return this.data()?.sections.find(section => section.name === name); }
   wallet(): number | null { const value = this.section('wallet')?.data; return typeof value === 'number' ? value : null; }
-  label(name: string) { return ({ wallet: 'Wallet', skills: 'Skills', skillQueue: 'Skill queue', industryJobs: 'Industry jobs', marketOrders: 'Market orders' } as Record<string, string>)[name] ?? name; }
+  label(name: string) { return ({ wallet: 'Wallet', skills: 'Skills', skillQueue: 'Skill queue', industryJobs: 'Industry jobs', marketOrders: 'Market orders', assets: 'Assets', blueprints: 'Blueprints' } as Record<string, string>)[name] ?? name; }
   activity(id: number) { return ({ 1: 'Manufacturing', 3: 'Time research', 4: 'Material research', 5: 'Copying', 8: 'Invention', 11: 'Reactions' } as Record<number, string>)[id] ?? `Activity ${id}`; }
   load() {
     clearTimeout(this.timer);
