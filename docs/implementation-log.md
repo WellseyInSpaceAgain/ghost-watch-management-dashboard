@@ -57,3 +57,10 @@
 - All references are validated and backed by restrictive foreign keys. Document updates protect against stale revisions; earlier Playbook content remains accessible.
 - Markdown uses [Marked](https://github.com/markedjs/marked/blob/master/README.md) followed by Angular's HTML binding sanitizer, never a trust bypass. Browser verification covers hostile embedded HTML as well as editing, revision viewing and linked Record persistence.
 - Fixed a zoneless Angular change-detection issue found by the browser test when opening a saved document. Backend suite: 74 passed; knowledge and Run browser workflows pass; production frontend build passes.
+
+## Replacement Packages
+
+- Added manual doctrine estimates and notes with one optional programme default. Switching defaults updates both records in a transaction; stale editors cannot overwrite the switch.
+- Coverage uses the active Ghost Watch Treasury pool's conceptual allocation. Missing treasury yields unknown, recorded zero treasury yields zero coverage, and nonpositive package values are rejected. No reimbursement or pricing integration.
+- Verification: 75 backend tests, production frontend build and package create/edit/reload browser check pass.
+- User added `v1-economic-plan.md` as operating context. The original application specification remains the implementation acceptance baseline; the plan is retained as user-authored documentation.

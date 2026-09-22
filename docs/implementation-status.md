@@ -31,8 +31,8 @@ States: **done** = end-to-end implemented and automated verification recorded; *
 | 23 | Actual financial results | done | Independent actuals, margin, durations and efficiency |
 | 24 | Run verdicts | done | R&D completion and successful verdict work without revenue |
 | 25 | Run/Track metrics | in progress | Run financials and manual T3 stages done; Track summaries and selected KPIs remain |
-| 26 | Replacement Packages | pending | |
-| 27 | Replacement coverage | pending | |
+| 26 | Replacement Packages | done | Manual estimates, notes, edit and atomic default selection |
+| 27 | Replacement coverage | done | Treasury-role allocation divided by package value; missing treasury stays unknown |
 | 28 | Manual Economic Snapshot | pending | Immutable stored values |
 | 29 | Automatic monthly snapshot | pending | Calendar-month deduplication, catch-up on start |
 | 30 | Snapshot history | pending | |

@@ -12,6 +12,7 @@ export const routes: Routes = [
   { path: 'runs/new', loadComponent: () => import('./run-detail').then(m => m.RunDetail) },
   { path: 'runs/:id', loadComponent: () => import('./run-detail').then(m => m.RunDetail) },
   { path: 'industry-jobs', loadComponent: () => import('./industry-jobs').then(m => m.IndustryJobs) },
+  { path: 'replacement-packages', loadComponent: () => import('./replacements').then(m => m.Replacements) },
   { path: 'capital', loadComponent: () => import('./capital').then(m => m.Capital) },
   { path: 'accounts', loadComponent: () => import('./accounts').then(m => m.Accounts) },
   { path: 'characters', loadComponent: () => import('./characters').then(m => m.Characters) },

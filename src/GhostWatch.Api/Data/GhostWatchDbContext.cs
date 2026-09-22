@@ -1,3 +1,4 @@
+using GhostWatch.Api.Economics.Replacement;
 using GhostWatch.Api.Economics.Tracks;
 using GhostWatch.Api.Economics.Capital;
 using GhostWatch.Api.Economics.Runs;
@@ -13,6 +14,7 @@ namespace GhostWatch.Api.Data;
 
 public sealed class GhostWatchDbContext(DbContextOptions<GhostWatchDbContext> options) : DbContext(options)
 {
+    public DbSet<ReplacementPackage> ReplacementPackages => Set<ReplacementPackage>();
     public DbSet<Playbook> Playbooks => Set<Playbook>();
     public DbSet<PlaybookRevision> PlaybookRevisions => Set<PlaybookRevision>();
     public DbSet<EconomicRecord> EconomicRecords => Set<EconomicRecord>();
@@ -35,6 +37,9 @@ public sealed class GhostWatchDbContext(DbContextOptions<GhostWatchDbContext> op
 
     protected override void OnModelCreating(ModelBuilder model)
     {
+        var package = model.Entity<ReplacementPackage>(); package.HasKey(x => x.Id); package.Property(x => x.Revision).IsConcurrencyToken();
+        package.HasIndex(x => x.IsDefault).IsUnique().HasFilter("\"IsDefault\" = 1");
+        package.Property(x => x.UpdatedAt).HasConversion(v => v, v => DateTime.SpecifyKind(v, DateTimeKind.Utc));
         var book = model.Entity<Playbook>(); book.HasKey(x => x.Id); book.Property(x => x.Revision).IsConcurrencyToken();
         book.Property(x => x.CreatedAt).HasConversion(v => v, v => DateTime.SpecifyKind(v, DateTimeKind.Utc));
         book.Property(x => x.UpdatedAt).HasConversion(v => v, v => DateTime.SpecifyKind(v, DateTimeKind.Utc));
