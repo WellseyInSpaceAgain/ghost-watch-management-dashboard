@@ -1,5 +1,6 @@
 using System.Text.Json.Nodes;
 using GhostWatch.Api.Data;
+using GhostWatch.Api.Eve.Inventory;
 using Microsoft.EntityFrameworkCore;
 
 namespace GhostWatch.Api.Eve.Esi;
@@ -23,11 +24,19 @@ public static class EveDataEndpoints
             var sections = CharacterRefresh.Sections.Select(name =>
             {
                 saved.TryGetValue(name, out var row);
-                return new { name, row?.AttemptedAt, row?.UpdatedAt, row?.Error, data = row?.Json is { } json ? JsonNode.Parse(json) : null };
+                return new { name, row?.AttemptedAt, row?.UpdatedAt, row?.Error, row?.Warning, data = row?.Json is { } json ? JsonNode.Parse(json) : null };
             }).ToArray();
             var skills = sections.Single(x => x.name == "skills").data;
             var jobs = await db.EveIndustryJobs.AsNoTracking().Where(x => x.CharacterId == id).OrderByDescending(x => x.StartDate).ToListAsync(ct);
-            return Results.Ok(new { character, progress = queue.Status(id), sections, capacity = CapacityCalculator.Calculate(skills), jobs });
+            var assets = sections.Single(x => x.name == "assets").data;
+            var blueprints = sections.Single(x => x.name == "blueprints").data;
+            var typeKeys = new[] { assets, blueprints }.OfType<JsonArray>().SelectMany(x => x).Select(x => $"type:{x!["type_id"]}").Distinct().ToArray();
+            var typeRows = await db.PublicEveLookups.AsNoTracking().Where(x => typeKeys.Contains(x.Key)).ToListAsync(ct);
+            var metadata = typeRows.ToDictionary(x => x.Key, x => JsonNode.Parse(x.Json)!);
+            var groupKeys = metadata.Values.Select(x => $"group:{x["group_id"]}").Distinct().ToArray();
+            foreach (var row in await db.PublicEveLookups.AsNoTracking().Where(x => groupKeys.Contains(x.Key)).ToListAsync(ct)) metadata[row.Key] = JsonNode.Parse(row.Json)!;
+            var inventory = InventoryProjection.Create(assets, blueprints, metadata);
+            return Results.Ok(new { inventory, character, progress = queue.Status(id), sections, capacity = CapacityCalculator.Calculate(skills), jobs });
         });
     }
 }

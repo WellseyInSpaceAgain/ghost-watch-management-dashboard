@@ -1,14 +1,15 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using GhostWatch.Api.Data;
+using GhostWatch.Api.Eve.Inventory;
 using GhostWatch.Api.Eve.Auth;
 using Microsoft.EntityFrameworkCore;
 
 namespace GhostWatch.Api.Eve.Esi;
 
-public sealed class CharacterRefresh(GhostWatchDbContext db, EsiClient esi, ICharacterAccessTokens tokens)
+public sealed class CharacterRefresh(GhostWatchDbContext db, EsiClient esi, ICharacterAccessTokens tokens, InventoryMetadata metadata)
 {
-    public static readonly string[] Sections = ["wallet", "skills", "skillQueue", "industryJobs", "marketOrders"];
+    public static readonly string[] Sections = ["wallet", "skills", "skillQueue", "industryJobs", "marketOrders", "assets", "blueprints"];
     public static string SafeError(Exception error) => error switch
     {
         EsiException or SsoException => error.Message,
@@ -44,10 +45,12 @@ public sealed class CharacterRefresh(GhostWatchDbContext db, EsiClient esi, ICha
                 var endpoint = name switch
                 {
                     "wallet" => "wallet", "skills" => "skills", "skillQueue" => "skillqueue",
-                    "industryJobs" => "industry/jobs?include_completed=true", "marketOrders" => "orders",
+                    "industryJobs" => "industry/jobs?include_completed=true", "marketOrders" => "orders", "assets" => "assets", "blueprints" => "blueprints",
                     _ => throw new InvalidOperationException()
                 };
-                data = await esi.Get($"characters/{id}/{endpoint}", token, ct, id);
+                data = name is "assets" or "blueprints"
+                    ? await esi.Pages($"characters/{id}/{endpoint}", token, id, ct)
+                    : await esi.Get($"characters/{id}/{endpoint}", token, ct, id);
                 Validate(name, data);
                 // Parse the complete response before touching any persisted industry rows.
                 if (name == "industryJobs") jobs = data.AsArray().Select(row => ParseJob(id, row!)).ToList();
@@ -73,6 +76,8 @@ public sealed class CharacterRefresh(GhostWatchDbContext db, EsiClient esi, ICha
                             else db.EveIndustryJobs.Add(job);
                         }
                     }
+                    section.Warning = name is "assets" or "blueprints" ? await metadata.Collect(data.AsArray(), ct) : null;
+                    if (section.Warning is not null) complete = false;
                     section.Json = data.ToJsonString();
                     section.UpdatedAt = DateTime.UtcNow;
                     section.Error = null;
@@ -86,6 +91,7 @@ public sealed class CharacterRefresh(GhostWatchDbContext db, EsiClient esi, ICha
 
     public static void Validate(string name, JsonNode data)
     {
+        if (name is "assets" or "blueprints") { InventoryProjection.Validate(name, data); return; }
         if (name == "wallet") { _ = data.GetValue<decimal>(); return; }
         if (name == "skills")
         {

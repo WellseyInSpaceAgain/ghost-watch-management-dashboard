@@ -9,6 +9,7 @@ public sealed class EveSection
     public DateTime AttemptedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
     public string? Error { get; set; }
+    public string? Warning { get; set; }
 }
 
 public sealed class EveIndustryJob

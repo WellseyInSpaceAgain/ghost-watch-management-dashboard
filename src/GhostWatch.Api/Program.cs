@@ -1,4 +1,5 @@
 using GhostWatch.Api.Data;
+using GhostWatch.Api.Eve.Inventory;
 using GhostWatch.Api.Eve.Esi;
 using GhostWatch.Api.Eve.Auth;
 using Microsoft.AspNetCore.DataProtection;
@@ -29,6 +30,7 @@ builder.Services.AddScoped<CharacterAccessTokens>();
 builder.Services.AddScoped<ICharacterAccessTokens>(services => services.GetRequiredService<CharacterAccessTokens>());
 builder.Services.AddSingleton<EsiThrottle>();
 builder.Services.AddScoped<CharacterRefresh>();
+builder.Services.AddScoped<InventoryMetadata>();
 builder.Services.AddSingleton<RefreshQueue>();
 builder.Services.AddHostedService(services => services.GetRequiredService<RefreshQueue>());
 builder.Services.AddHttpClient<EsiClient>(http =>
