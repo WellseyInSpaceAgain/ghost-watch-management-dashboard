@@ -7,9 +7,9 @@ using Microsoft.EntityFrameworkCore;
 
 namespace GhostWatch.Api.Eve.Esi;
 
-public sealed class CharacterRefresh(GhostWatchDbContext db, EsiClient esi, ICharacterAccessTokens tokens, InventoryMetadata metadata, LocationNames locations)
+public sealed class CharacterRefresh(GhostWatchDbContext db, EsiClient esi, ICharacterAccessTokens tokens, InventoryMetadata metadata, LocationNames locations, ExtraFacts extraFacts)
 {
-    public static readonly string[] Sections = ["wallet", "skills", "skillQueue", "industryJobs", "marketOrders", "assets", "blueprints"];
+    public static readonly string[] Sections = ["wallet", "skills", "skillQueue", "industryJobs", "marketOrders", "assets", "blueprints", "standings", "loyalty", "planets"];
     public static string SafeError(Exception error) => error switch
     {
         EsiException or SsoException => error.Message,
@@ -49,6 +49,7 @@ public sealed class CharacterRefresh(GhostWatchDbContext db, EsiClient esi, ICha
                 {
                     "wallet" => "wallet", "skills" => "skills", "skillQueue" => "skillqueue",
                     "industryJobs" => "industry/jobs?include_completed=true", "marketOrders" => "orders", "assets" => "assets", "blueprints" => "blueprints",
+                    "standings" => "standings", "loyalty" => "loyalty/points", "planets" => "planets",
                     _ => throw new InvalidOperationException()
                 };
                 data = name is "assets" or "blueprints"
@@ -90,6 +91,7 @@ public sealed class CharacterRefresh(GhostWatchDbContext db, EsiClient esi, ICha
                         section.Warning = string.Join(" ", new[] { section.Warning, warning }.Where(x => x is not null));
                         if (section.Warning.Length == 0) section.Warning = null;
                     }
+                    if (ExtraFacts.Names.Contains(name)) section.Warning = await extraFacts.Collect(name, data, id, token!, ct);
                     if (section.Warning is not null) complete = false;
                     section.Json = data.ToJsonString();
                     section.UpdatedAt = DateTime.UtcNow;
@@ -117,6 +119,14 @@ public sealed class CharacterRefresh(GhostWatchDbContext db, EsiClient esi, ICha
             return;
         }
         if (data is not JsonArray array || array.Any(row => row is not JsonObject)) throw new JsonException();
+        foreach (var row in array)
+        {
+            if (name == "skillQueue" && (row!["skill_id"]?.GetValue<long>() is not > 0 || row["finished_level"]?.GetValue<int>() is not (>= 1 and <= 5))) throw new JsonException();
+            if (name == "marketOrders" && (row!["type_id"]?.GetValue<long>() is not > 0 || row["location_id"]?.GetValue<long>() is not > 0 || row["price"]?.GetValue<decimal>() is not >= 0 || row["volume_remain"]?.GetValue<long>() is not >= 0)) throw new JsonException();
+            if (name == "standings" && (row!["from_id"]?.GetValue<long>() is not > 0 || row["standing"]?.GetValue<decimal>() is not (>= -10 and <= 10))) throw new JsonException();
+            if (name == "loyalty" && (row!["corporation_id"]?.GetValue<long>() is not > 0 || row["loyalty_points"]?.GetValue<long>() is not >= 0)) throw new JsonException();
+            if (name == "planets" && (row!["planet_id"]?.GetValue<long>() is not > 0 || row["solar_system_id"]?.GetValue<long>() is not > 0 || row["num_pins"]?.GetValue<int>() is not >= 0)) throw new JsonException();
+        }
     }
 
     private static EveIndustryJob ParseJob(long id, JsonNode row)

@@ -1,6 +1,6 @@
 # EVE SSO setup
 
-Ghost Watch now supports character login and protected refresh-token persistence. The user has manually verified the character workflow; these instructions remain available for new installations. After connecting, open a character and use Refresh EVE data to collect wallets, skills, skill queue, market orders, industry jobs, assets and blueprints.
+Ghost Watch now supports character login and protected refresh-token persistence. The user has manually verified the character workflow; these instructions remain available for new installations. After connecting, open a character and use Refresh EVE data to collect wallets, skills, skill queue, market orders, industry jobs, assets, blueprints, PI colonies, standings and loyalty points.
 
 ## Register Ghost Watch
 
@@ -32,7 +32,7 @@ esi-planets.manage_planets.v1
 esi-universe.read_structures.v1
 ```
 
-These scopes cover the character economics requested by the brief. They are granted at connection time; the application collects the seven sections above. Standings, loyalty points and PI refresh follow in a later slice.
+These scopes cover the character economics requested by the brief. They are granted at connection time; the application collects the ten sections above. PI refresh collects colony summaries.
 
 ## Configure a container
 

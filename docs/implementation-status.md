@@ -9,8 +9,8 @@ States: **done** = end-to-end implemented and automated verification recorded; *
 | 1 | Launch locally | done | Production build and isolated Podman Compose/persistence smoke test |
 | 2 | Authenticate multiple characters | done | SSO integration tests; user reports manual character workflow verification |
 | 3 | Refresh characters through ESI | done | Queue, retries, scope checks, retained facts; integration tests |
-| 4 | Current economic ESI data | pending | Wallet, jobs, assets, blueprints exist; PI, standings, LP and readable skill/order views remain |
-| 5 | Trained/currently usable capability | pending | Capacity limits done; broader economic foundations remain |
+| 4 | Current economic ESI data | done | Named/searchable skills, queue, wallets, orders, jobs, assets, blueprints, PI colony summaries, standings and LP; fixture/browser verification |
+| 5 | Trained/currently usable capability | done | Reference-based foundations and evidence, active unknowns and subscription context; backend tests |
 | 6 | Manual account grouping | done | Account editor, per-character group selection; API/browser coverage |
 | 7 | Account Alpha/Omega state | done | Explicit Unknown/Alpha/Omega, manual account setting |
 | 8 | Create Economy Tracks | done | CRUD, archive/restore, revision protection, browser tests |

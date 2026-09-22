@@ -54,7 +54,7 @@ interface Character { accountName?: string; subscription?: string; assignment?: 
           <p class="muted" style="margin-top:16px">Use the login button again to add another character or reconnect an existing one. Select the character on EVE's login page.</p>
         }
       </section>
-      <p class="muted">Open a character to refresh wallets, skills, skill queues, market orders, industry jobs, assets and blueprints. Account grouping, subscription and economic assignments are managed locally.</p>
+      <p class="muted">Open a character to refresh wallets, skills, skill queues, market orders, industry jobs, assets, blueprints, PI, standings and loyalty points. Account grouping, subscription and economic assignments are managed locally.</p>
       <details class="panel"><summary>Requested EVE permissions</summary><p class="muted">These permissions cover character economics in the project brief. Corporation access is not requested.</p><ul>
         @for (scope of config()?.scopes; track scope) { <li><code>{{ scope }}</code></li> }
       </ul></details>
@@ -106,7 +106,7 @@ export class Characters {
     return ({ queued: 'Queued', complete: 'Updated', partial: 'Needs attention', failed: 'Failed' } as Record<string, string>)[progress.state] ?? progress.state;
   }
   sectionLabel(section: string | null) {
-    return ({ wallet: 'Wallet', skills: 'Skills', skillQueue: 'Skill queue', industryJobs: 'Industry jobs', marketOrders: 'Market orders', assets: 'Assets', blueprints: 'Blueprints' } as Record<string, string>)[section ?? ''] ?? 'Refreshing';
+    return ({ wallet: 'Wallet', skills: 'Skills', skillQueue: 'Skill queue', industryJobs: 'Industry jobs', marketOrders: 'Market orders', assets: 'Assets', blueprints: 'Blueprints', standings: 'Standings', loyalty: 'Loyalty points', planets: 'Planetary Interaction' } as Record<string, string>)[section ?? ''] ?? 'Refreshing';
   }
   private schedulePoll() {
     clearTimeout(this.pollTimer);

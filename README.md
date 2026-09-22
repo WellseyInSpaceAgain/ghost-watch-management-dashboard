@@ -4,7 +4,7 @@ A local Ghost Watch operations console. Economics is the first module; the full 
 
 ## Current milestone
 
-Implemented: dark responsive console, active Track overview, create/edit/archive/restore Economy Tracks, durable SQLite storage, API validation, revision checks that prevent stale edits from overwriting newer notes, EVE SSO character connections with protected refresh-token storage, and queued ESI refresh for wallets, skills, skill queues, market orders, industry jobs, assets and blueprints. Archived Tracks retain their IDs, notes and creation dates.
+Implemented: dark responsive console, active Track overview, create/edit/archive/restore Economy Tracks, durable SQLite storage, API validation, revision checks that prevent stale edits from overwriting newer notes, EVE SSO character connections with protected refresh-token storage, and queued ESI refresh for wallets, skills, skill queues, market orders, industry jobs, assets, blueprints, PI colony summaries, standings and loyalty points. Archived Tracks retain their IDs, notes and creation dates.
 
 The rest of the brief is still pending: PI/standings/LP refresh, account grouping, financial workflows, Runs, Capital Pools, knowledge records, Objectives, snapshots and charts. The headline metrics currently show explicit unavailable states. The user has manually verified the character connection/refresh workflow. The new assets/blueprints feature is covered by simulated EVE tests; live inventory verification remains to be done.
 
@@ -119,3 +119,9 @@ All ESI pages must succeed and validate before the previous collection is replac
 The Characters list shows a compact permission status; each character's **ESI Permissions** panel lists missing scopes and offers **Re-authorise Character**. Enable the scopes in your EVE application registration, then use that action and select the same character. Successful re-authorisation returns to its detail page, updates permissions and retains the character and local data. Selecting another character is rejected.
 
 Existing connections initially show **Permissions not checked** after this upgrade. Refresh EVE data to establish grants from a verified access token, or re-authorise. Missing permissions skip only the affected refresh operations and preserve previous facts. Adding a new application scope automatically updates these warnings; token refresh does not automatically grant new permissions.
+
+### Accounts and economic character data
+
+Use **Accounts** to create manual account groups and record Unknown/Alpha/Omega subscription state. On character detail, **Economic assignment** saves account membership, a planning label, notes and any number of Track links. These records remain separate from EVE identity and refreshable facts.
+
+Character detail provides searchable named skills, skill queue, orders, PI colonies, standings and loyalty tables. Economic foundations show trained and active skill evidence, dormant skills and explicit limits on recipe eligibility. Refresh uses ten independently retained sections; metadata failures preserve raw facts with warnings.

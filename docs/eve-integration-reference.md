@@ -77,8 +77,14 @@ Currently called endpoints: character wallet, skills, skillqueue, industry/jobs 
 
 ## Inventory reference adaptation
 
-Reviewed `NameResolver.Enrich`, `NameResolver.Cached` and `AssetClassifier` read-only before implementing this feature. The new `InventoryMetadata` caches public `universe/types/{typeId}` and `universe/groups/{groupId}` responses for 30 days. Public lookups carry no bearer token and are distinct from character sections. Private structure lookup has not been ported and no new structure scope is requested.
+Reviewed `NameResolver.Enrich`, `NameResolver.Cached` and `AssetClassifier` read-only before implementing this feature. The new `InventoryMetadata` caches public `universe/types/{typeId}` and `universe/groups/{groupId}` responses for 30 days. Public lookups carry no bearer token and are distinct from character sections. Private structure lookup now uses the central structure-read scope and a per-character cache.
 
 `InventoryProjection` adapts the exact group/category mappings and the reference's known-parent-item/location-flag availability rules. It keeps raw ESI sections unchanged, deriving named/category/availability views on read. Blueprint quantity `-2` means a copy; `-1` and positive quantities represent originals, with positive values preserving stack count. Copy run counts are preserved, including zero. Missing metadata remains explicitly unknown, rather than inventing categories from item-name fragments.
 
-Unlike the exporter's in-place enrichment, failed names/categories produce a separate section warning while complete raw inventory is saved. Failed or malformed inventory pages preserve the prior complete section. Location IDs/flags are displayed without inferring structure access. No inventory reservation or production dependency model is implemented.
+Unlike the exporter's in-place enrichment, failed names/categories produce a separate section warning while complete raw inventory is saved. Failed or malformed inventory pages preserve the prior complete section. Location names are projected with IDs/flags as secondary references, without inferring structure access. No inventory reservation or production dependency model is implemented.
+
+## Remaining factual data and foundations
+
+- Reviewed `RefreshService`, `NameResolver` and `EconomicAssessor` again before implementing PI colony summaries, standings, loyalty, named skills/queue and market-order tables. Used the exact endpoint/scope pairs above; no PI pins/routes or wallet ledger were added.
+- Selectively adapted `EconomicAssessor` and its small evidence records/helpers. Trained/active evidence, dormant skills, encryption/science thresholds, refining/hauling evidence and explicit recipe-not-verified states remain intact. Manual account subscription is contextual information and never substitutes for ESI active levels.
+- `ExtraFacts` writes public type/group/entity/planet lookups to the new application's cache and projects names onto cloned responses. The saved raw section is unchanged. Additional name failures are warnings; failed data fetches preserve previous sections.

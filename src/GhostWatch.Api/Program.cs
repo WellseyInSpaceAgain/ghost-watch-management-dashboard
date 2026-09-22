@@ -33,6 +33,7 @@ builder.Services.AddSingleton<EsiThrottle>();
 builder.Services.AddScoped<CharacterRefresh>();
 builder.Services.AddScoped<InventoryMetadata>();
 builder.Services.AddScoped<LocationNames>();
+builder.Services.AddScoped<ExtraFacts>();
 builder.Services.AddSingleton<RefreshQueue>();
 builder.Services.AddHostedService(services => services.GetRequiredService<RefreshQueue>());
 builder.Services.AddHttpClient<EsiClient>(http =>

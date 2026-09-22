@@ -1,3 +1,4 @@
+import { EveFacts, Assessment } from './eve-facts';
 import { CharacterPlan } from './character-plan';
 import { EvePermissions } from './eve-permissions';
 import { InventoryData, InventoryView } from './inventory-view';
@@ -12,6 +13,8 @@ interface Section { name: string; attemptedAt: string | null; updatedAt: string 
 interface Capacity { manufacturingJobs: number; researchJobs: number; reactionJobs: number; marketOrders: number; piColonies: number; }
 interface Job { productName: string; blueprintName: string; jobId: number; activityId: number; productTypeId: number | null; blueprintTypeId: number; runs: number; status: string; startDate: string; endDate: string; lastSeenAt: string; }
 interface CharacterData {
+  facts?: Record<string, unknown>;
+  assessment?: Assessment | null;
   permissions?: EvePermissions;
   character: { characterId: number; characterName: string };
   progress: { state: string; section: string | null; error: string | null };
@@ -23,7 +26,7 @@ interface CharacterData {
 
 @Component({
   selector: 'app-character-data',
-  imports: [DatePipe, DecimalPipe, JsonPipe, RouterLink, MatButtonModule, InventoryView, CharacterPlan],
+  imports: [DatePipe, DecimalPipe, JsonPipe, RouterLink, MatButtonModule, InventoryView, CharacterPlan, EveFacts],
   template: `
     <a routerLink="/characters" class="back-link">← Characters</a>
     <p class="eyebrow">EVE DATA / CHARACTER</p>
@@ -74,6 +77,7 @@ interface CharacterData {
         } @else { <p class="muted">{{ section('industryJobs')?.updatedAt ? 'No industry jobs returned by EVE.' : 'Industry jobs have not been collected yet.' }}</p> }
         <p class="muted" style="margin-top:16px">Jobs remain in local history when they leave EVE's response window. Status is last observed, not inferred. Run associations are not available yet.</p>
       </section>
+      <app-eve-facts [facts]="current.facts ?? null" [assessment]="current.assessment ?? null" [sections]="current.sections" />
       <app-inventory-view [inventory]="current.inventory ?? null" [sections]="current.sections" />
       <section class="panel"><h2>Data freshness and collected records</h2><p class="muted">Errors retain the last successful result. Expand a section to inspect raw EVE records, including skill queue and market orders. These diagnostic records retain the original EVE IDs.</p>
         @for (section of current.sections; track section.name) {
@@ -122,7 +126,7 @@ export class CharacterDataPage {
   busy() { return ['queued', 'running'].includes(this.data()?.progress.state ?? ''); }
   section(name: string) { return this.data()?.sections.find(section => section.name === name); }
   wallet(): number | null { const value = this.section('wallet')?.data; return typeof value === 'number' ? value : null; }
-  label(name: string) { return ({ wallet: 'Wallet', skills: 'Skills', skillQueue: 'Skill queue', industryJobs: 'Industry jobs', marketOrders: 'Market orders', assets: 'Assets', blueprints: 'Blueprints' } as Record<string, string>)[name] ?? name; }
+  label(name: string) { return ({ wallet: 'Wallet', skills: 'Skills', skillQueue: 'Skill queue', industryJobs: 'Industry jobs', marketOrders: 'Market orders', assets: 'Assets', blueprints: 'Blueprints', standings: 'Standings', loyalty: 'Loyalty points', planets: 'Planetary Interaction' } as Record<string, string>)[name] ?? name; }
   activity(id: number) { return ({ 1: 'Manufacturing', 3: 'Time research', 4: 'Material research', 5: 'Copying', 8: 'Invention', 11: 'Reactions' } as Record<number, string>)[id] ?? `Activity ${id}`; }
   load() {
     clearTimeout(this.timer);

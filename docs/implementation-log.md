@@ -16,3 +16,11 @@
 - Reference account/character controllers informed semantics; no credential/account inference, subscription API claims or role derivation from skills.
 - Backend tests cover persistence, multi-Track removal, invalid references, stale revisions and credential preservation. Re-authorisation and refresh tests now include the new local management records.
 - No hard-delete of account groups: keeping identities avoids accidental loss of assignments. Groups can be renamed and characters can be unassigned.
+
+## Remaining EVE factual views and economic foundations
+
+- Added scoped standings, loyalty-point and PI colony-summary refresh; total refresh stages now come from ten section definitions. No new OAuth scopes beyond the central list were needed.
+- Named/searchable/paginated skills, queue, market orders, standings, loyalty and PI views are connected to enriched API projections. Buy commitments and listed sell values remain distinct from realised revenue.
+- Selectively adapted the reference economic assessor: trained/active evidence, dormant skills, broad manufacturing/research/reaction/trading/PI/refining/hauling/invention foundations, user-set subscription context and explicit recipe-eligibility unknowns.
+- Raw factual JSON remains unmodified; public names and type/group metadata are independent caches. Scope checks and failure retention apply to all added sections.
+- Integration pass: backend build and 67 tests pass; Angular production build and all 14 browser tests pass. Existing account, scope and Track workflows remain connected. New live EVE sections remain separately blocked on external verification.
