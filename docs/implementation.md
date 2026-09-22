@@ -24,3 +24,18 @@ The complete brief is the product scope. Work proceeds in runnable, independentl
 9. Operational summaries, deterministic attention rules and complete end-to-end verification.
 
 A small manual Track slice is independent of SSO and makes the foundation usable while EVE registration and live authentication are pending. Financial summaries and selected KPIs follow their source data; no unsupported calculations are shown.
+
+## Verified first milestone
+
+- .NET 10 API and Angular 22 / Angular Material production build.
+- New SQLite model and `AddEconomyTracks` migration, applied on startup.
+- Track creation, editing, archive filtering and restoration; preserved creation dates and notes.
+- Optimistic revision checks reject stale updates with HTTP 409.
+- Eight backend tests against isolated SQLite databases.
+- Two Chromium workflow tests, including reload persistence, archive/restore, narrow-screen layout, API failure and retry.
+- Published Release application verified with compiled frontend, deep-link routing, API 404 handling, UTC timestamps and SQLite persistence across process restart.
+- EVE reference review recorded in `eve-integration-reference.md`; no EVE implementation has been ported yet.
+
+Next milestone: configure new-application SSO credentials/callback, implement the inspected PKCE/JWT/token-persistence patterns, and complete an interactive character login. Do not mark live SSO or multi-character ESI verification complete using mocked tests.
+
+Docker launch remains unverified because neither Docker nor Podman is installed in the development environment. The backend and compiled frontend can be built and run directly.
