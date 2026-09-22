@@ -10,6 +10,7 @@ public sealed class TestApplication(Action<IWebHostBuilder>? configure = null) :
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseSetting("Storage:Directory", directory);
+        builder.UseSetting("Snapshots:AutomaticEnabled", "false");
         configure?.Invoke(builder);
     }
 

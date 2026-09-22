@@ -1,3 +1,4 @@
+using GhostWatch.Api.Economics.Snapshots;
 using GhostWatch.Api.Economics.Reporting;
 using GhostWatch.Api.Economics.Replacement;
 using GhostWatch.Api.Economics.Tracks;
@@ -15,6 +16,7 @@ namespace GhostWatch.Api.Data;
 
 public sealed class GhostWatchDbContext(DbContextOptions<GhostWatchDbContext> options) : DbContext(options)
 {
+    public DbSet<EconomicSnapshot> EconomicSnapshots => Set<EconomicSnapshot>();
     public DbSet<TrackKpiSelection> TrackKpiSelections => Set<TrackKpiSelection>();
     public DbSet<ReplacementPackage> ReplacementPackages => Set<ReplacementPackage>();
     public DbSet<Playbook> Playbooks => Set<Playbook>();
@@ -39,6 +41,9 @@ public sealed class GhostWatchDbContext(DbContextOptions<GhostWatchDbContext> op
 
     protected override void OnModelCreating(ModelBuilder model)
     {
+        var snapshot = model.Entity<EconomicSnapshot>(); snapshot.HasKey(x => x.Id);
+        snapshot.HasIndex(x => x.MonthKey).IsUnique().HasFilter("\"MonthKey\" IS NOT NULL");
+        snapshot.Property(x => x.Timestamp).HasConversion(v => v, v => DateTime.SpecifyKind(v, DateTimeKind.Utc));
         var kpis = model.Entity<TrackKpiSelection>(); kpis.HasKey(x => x.TrackId); kpis.Property(x => x.Revision).IsConcurrencyToken();
         kpis.HasOne<EconomyTrack>().WithOne().HasForeignKey<TrackKpiSelection>(x => x.TrackId).OnDelete(DeleteBehavior.Restrict);
         var package = model.Entity<ReplacementPackage>(); package.HasKey(x => x.Id); package.Property(x => x.Revision).IsConcurrencyToken();

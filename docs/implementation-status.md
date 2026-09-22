@@ -33,9 +33,9 @@ States: **done** = end-to-end implemented and automated verification recorded; *
 | 25 | Run/Track metrics | done | Central aggregates, shared-pool semantics, selected Track KPIs and manual stages |
 | 26 | Replacement Packages | done | Manual estimates, notes, edit and atomic default selection |
 | 27 | Replacement coverage | done | Treasury-role allocation divided by package value; missing treasury stays unknown |
-| 28 | Manual Economic Snapshot | pending | Immutable stored values |
-| 29 | Automatic monthly snapshot | pending | Calendar-month deduplication, catch-up on start |
-| 30 | Snapshot history | pending | |
+| 28 | Manual Economic Snapshot | done | Named/noted immutable versioned capture and stored detail view |
+| 29 | Automatic monthly snapshot | done | UTC month uniqueness, transactional capture, startup catch-up and hourly checks |
+| 30 | Snapshot history | done | Stored programme/pool/Track/KPI/objective values and factual completeness |
 | 31 | Validated chart JSON | pending | Explicit fields/sources; no arbitrary code/SQL |
 | 32 | Example chart JSON | pending | |
 | 33 | Chart preview | pending | |

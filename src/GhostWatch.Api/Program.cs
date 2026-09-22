@@ -1,3 +1,4 @@
+using GhostWatch.Api.Economics.Snapshots;
 using GhostWatch.Api.Economics.Reporting;
 using GhostWatch.Api.Economics.Replacement;
 using GhostWatch.Api.Data;
@@ -31,6 +32,8 @@ builder.Services.AddDbContext<GhostWatchDbContext>(options => options.UseSqlite(
 builder.Services.AddDataProtection().SetApplicationName("GhostWatchManagementDashboard")
     .PersistKeysToFileSystem(new DirectoryInfo(Path.Combine(dataDirectory, "keys")));
 builder.Services.AddMemoryCache();
+builder.Services.AddScoped<SnapshotStore>();
+builder.Services.AddHostedService<MonthlySnapshots>();
 builder.Services.AddSingleton<PendingLogins>();
 builder.Services.AddSingleton<CharacterGate>();
 builder.Services.AddScoped<CharacterAccessTokens>();
@@ -81,6 +84,7 @@ app.MapPlanning();
 app.MapKnowledge();
 app.MapReplacement();
 app.MapReporting();
+app.MapSnapshots();
 app.MapCharacterManagement();
 app.MapEveData();
 app.MapControllers();

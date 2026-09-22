@@ -12,6 +12,7 @@ interface OverviewData {summary:ProgrammeSummary;attention:{rule:string;message:
 @if(error()){<p role="alert" class="error">{{error()}} <button mat-button (click)="load()">Retry</button></p>}
 @if(loading()){<p role="status">Loading programme state…</p>}
 @if(data();as data){
+<p><a mat-stroked-button routerLink="/snapshots">Take Snapshot / history</a></p>
 <section class="metrics" aria-label="Programme metrics">@for(metric of headlines;track metric.key){<article class="metric"><h2>{{metric.label}}</h2><strong>{{data.summary.metrics[metric.key]|metric:metric.unit}}</strong><p>{{data.summary.metrics[metric.key]===null?metric.empty:metric.context}}</p></article>}</section>
 <section class="panel"><div class="section-heading"><h2>Active Tracks</h2><a routerLink="/tracks">All Tracks →</a></div><p class="muted">Allocation is the Track's default pool allocation; shared pools are not summed across Tracks.</p>
 <div class="table-wrap"><table><thead><tr><th>Track</th><th>Purpose</th><th>Default pool allocation</th><th>Track commitments</th><th>30d P/L</th><th>Status</th></tr></thead><tbody>

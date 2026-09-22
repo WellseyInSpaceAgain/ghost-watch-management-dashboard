@@ -29,3 +29,9 @@ Selected Track key performance indicators (KPIs) come from the API catalog, with
 Wallet and order totals require a collected section for every connected character. Stale retained values remain visibly labelled. Buy commitments are price × remaining volume; sell listed value uses the same multiplication for sell orders. Listed sell orders are not realised revenue.
 
 Needs Attention rules are deterministic: unassociated retained industry jobs; completed commercial Runs without actual revenue; completed Runs without verdicts; pool commitments at least 90% of allocation; active incomplete checklists; overdue active objectives; conceptual over-allocation; missing/stale wallets. The UI links to the record needing attention. It never changes records or takes action automatically.
+
+## Snapshot history
+
+Manual snapshots accept an optional name and note. Automatic snapshots use UTC calendar months, create the current month at application startup when absent, and check hourly thereafter. A unique nullable month key prevents duplicate automatic captures; manual snapshots have no month key. Missing historical months are not backfilled.
+
+A transaction reads local programme state and persists versioned JSON values, including names, programme/pool/Track metrics, selected KPIs, factual completeness/staleness, replacement estimates/coverage and Objective/Gate state. History reads these stored values. There are no snapshot editing or deletion endpoints. Later renames, allocations, refreshed wallets or Run edits cannot change an earlier snapshot.

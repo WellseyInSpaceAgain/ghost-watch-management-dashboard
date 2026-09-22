@@ -72,3 +72,10 @@
 - Central reporting preserves incomplete financial values. Default-pool allocation/availability are explicitly labelled because multiple Tracks may share a pool; programme totals sum pools directly. Detailed formulas and rule definitions are in `financial-metrics.md`.
 - Verification: 76 backend tests, production frontend build and all 21 browser tests pass, including navigation, narrow-screen layout, character refresh/scope handling and new operational workflows.
 - Isolated host Podman Compose build/start/deep-link/migration/persistence smoke test passes. Only the temporary smoke-test volume was removed; the user's runtime data and credentials were not inspected or changed.
+
+## Immutable Economic Snapshots
+
+- Added manual named/noted captures and automatic UTC monthly captures. A lightweight hosted service checks on startup and hourly; a transactional capture and unique month key prevent duplicate automatic entries. No fabricated historical backfill.
+- Snapshots store versioned calculated values and names, not live references for recalculation. The history UI shows programme finance, factual completeness, Capital Pools, Track KPIs and Objective/Gate progress.
+- Tests verify persisted history remains unchanged after allocations change, same-month idempotence, next-month creation and actual hosted-worker startup. Automated tests use isolated databases and disable the worker unless testing it explicitly.
+- Verification: 78 backend tests pass, frontend production build passes and manual capture/reload/immutability browser workflow passes. Removed an unused UI import reported during the build.
