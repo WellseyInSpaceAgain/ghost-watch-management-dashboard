@@ -1,5 +1,4 @@
 using System.Net;
-using Microsoft.AspNetCore.Mvc.Testing;
 
 namespace GhostWatch.Tests;
 
@@ -8,7 +7,7 @@ public class HostTests
     [Fact]
     public async Task Health_reports_product_identity_and_unknown_api_is_not_an_html_page()
     {
-        await using var app = new WebApplicationFactory<Program>();
+        await using var app = new TestApplication();
         using var client = app.CreateClient();
         var response = await client.GetAsync("/api/health");
         response.EnsureSuccessStatusCode();
