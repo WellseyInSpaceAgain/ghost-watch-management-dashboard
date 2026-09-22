@@ -15,9 +15,9 @@ States: **done** = end-to-end implemented and automated verification recorded; *
 | 7 | Account Alpha/Omega state | done | Explicit Unknown/Alpha/Omega, manual account setting |
 | 8 | Create Economy Tracks | done | CRUD, archive/restore, revision protection, browser tests |
 | 9 | Link Characters to Tracks | done | Multi-Track links, economic assignment and planning notes; linked-character view on Track |
-| 10 | Create Playbooks | pending | |
-| 11 | Markdown Playbook editing | pending | Include revision retention |
-| 12 | Arbitrary Records/notes | pending | Typed metadata, flexible Markdown and links |
+| 10 | Create Playbooks | done | Linked procedures, status/tags and Run selection |
+| 11 | Markdown Playbook editing | done | Sanitized preview, retained Markdown/timestamps and stale-edit protection |
+| 12 | Arbitrary Records/notes | done | Custom types/tags, Markdown and named links across management objects |
 | 13 | Objectives and Gates | done | Manual checklist, progress, Track links and completion state; API/browser tests |
 | 14 | Conceptual Capital Pools | done | Create/edit/archive/restore, roles, targets and Track defaults; Run-derived metrics await Runs |
 | 15 | Capital adjustments/transfers | done | Atomic conceptual movements with immutable named history |

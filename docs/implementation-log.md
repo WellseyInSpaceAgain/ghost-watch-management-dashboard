@@ -50,3 +50,10 @@
 - Track detail now edits user-defined production stages and internal/external state. The backend calculates internalisation as internal/selected stages; an empty set stays unknown. This never claims recipe capability.
 - Revision checks reject stale planning updates; validation covers progress bounds, references and duplicate stage names.
 - Backend verification: 73 tests pass; frontend production build passes. Browser coverage exercises a Gate checklist and persisted 50% internalisation.
+
+## Playbooks and flexible Records
+
+- Added Markdown procedures, status/tags, Track/Character/Run links and prior-version Markdown/timestamp retention. Runs now select a Playbook. Records allow user-defined types and links to Tracks, Runs, Characters, Playbooks, Objectives and Capital Pools.
+- All references are validated and backed by restrictive foreign keys. Document updates protect against stale revisions; earlier Playbook content remains accessible.
+- Markdown uses [Marked](https://github.com/markedjs/marked/blob/master/README.md) followed by Angular's HTML binding sanitizer, never a trust bypass. Browser verification covers hostile embedded HTML as well as editing, revision viewing and linked Record persistence.
+- Fixed a zoneless Angular change-detection issue found by the browser test when opening a saved document. Backend suite: 74 passed; knowledge and Run browser workflows pass; production frontend build passes.

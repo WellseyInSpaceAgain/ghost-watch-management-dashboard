@@ -2,6 +2,7 @@ using GhostWatch.Api.Economics.Tracks;
 using GhostWatch.Api.Economics.Capital;
 using GhostWatch.Api.Economics.Runs;
 using GhostWatch.Api.Economics.Planning;
+using GhostWatch.Api.Knowledge;
 using GhostWatch.Api.Management;
 using GhostWatch.Api.Eve;
 using GhostWatch.Api.Eve.Inventory;
@@ -12,6 +13,10 @@ namespace GhostWatch.Api.Data;
 
 public sealed class GhostWatchDbContext(DbContextOptions<GhostWatchDbContext> options) : DbContext(options)
 {
+    public DbSet<Playbook> Playbooks => Set<Playbook>();
+    public DbSet<PlaybookRevision> PlaybookRevisions => Set<PlaybookRevision>();
+    public DbSet<EconomicRecord> EconomicRecords => Set<EconomicRecord>();
+    public DbSet<KnowledgeLink> KnowledgeLinks => Set<KnowledgeLink>();
     public DbSet<Objective> Objectives => Set<Objective>();
     public DbSet<TrackStrategy> TrackStrategies => Set<TrackStrategy>();
     public DbSet<EconomicRun> EconomicRuns => Set<EconomicRun>();
@@ -30,6 +35,28 @@ public sealed class GhostWatchDbContext(DbContextOptions<GhostWatchDbContext> op
 
     protected override void OnModelCreating(ModelBuilder model)
     {
+        var book = model.Entity<Playbook>(); book.HasKey(x => x.Id); book.Property(x => x.Revision).IsConcurrencyToken();
+        book.Property(x => x.CreatedAt).HasConversion(v => v, v => DateTime.SpecifyKind(v, DateTimeKind.Utc));
+        book.Property(x => x.UpdatedAt).HasConversion(v => v, v => DateTime.SpecifyKind(v, DateTimeKind.Utc));
+        var revision = model.Entity<PlaybookRevision>(); revision.HasKey(x => new { x.PlaybookId, x.Version });
+        revision.HasOne<Playbook>().WithMany().HasForeignKey(x => x.PlaybookId).OnDelete(DeleteBehavior.Restrict);
+        revision.Property(x => x.SavedAt).HasConversion(v => v, v => DateTime.SpecifyKind(v, DateTimeKind.Utc));
+        var record = model.Entity<EconomicRecord>(); record.HasKey(x => x.Id); record.Property(x => x.Revision).IsConcurrencyToken();
+        record.Property(x => x.CreatedAt).HasConversion(v => v, v => DateTime.SpecifyKind(v, DateTimeKind.Utc));
+        record.Property(x => x.UpdatedAt).HasConversion(v => v, v => DateTime.SpecifyKind(v, DateTimeKind.Utc));
+        var knowledge = model.Entity<KnowledgeLink>(); knowledge.HasKey(x => x.Id);
+        knowledge.ToTable(table => {
+            table.HasCheckConstraint("CK_KnowledgeLink_Owner", "(PlaybookId IS NOT NULL) + (RecordId IS NOT NULL) = 1");
+            table.HasCheckConstraint("CK_KnowledgeLink_Target", "(TrackId IS NOT NULL) + (RunId IS NOT NULL) + (CharacterId IS NOT NULL) + (RelatedPlaybookId IS NOT NULL) + (ObjectiveId IS NOT NULL) + (CapitalPoolId IS NOT NULL) = 1");
+        });
+        knowledge.HasOne<Playbook>().WithMany().HasForeignKey(x => x.PlaybookId).OnDelete(DeleteBehavior.Restrict);
+        knowledge.HasOne<EconomicRecord>().WithMany().HasForeignKey(x => x.RecordId).OnDelete(DeleteBehavior.Restrict);
+        knowledge.HasOne<EconomyTrack>().WithMany().HasForeignKey(x => x.TrackId).OnDelete(DeleteBehavior.Restrict);
+        knowledge.HasOne<EconomicRun>().WithMany().HasForeignKey(x => x.RunId).OnDelete(DeleteBehavior.Restrict);
+        knowledge.HasOne<EveCharacter>().WithMany().HasForeignKey(x => x.CharacterId).OnDelete(DeleteBehavior.Restrict);
+        knowledge.HasOne<Playbook>().WithMany().HasForeignKey(x => x.RelatedPlaybookId).OnDelete(DeleteBehavior.Restrict);
+        knowledge.HasOne<Objective>().WithMany().HasForeignKey(x => x.ObjectiveId).OnDelete(DeleteBehavior.Restrict);
+        knowledge.HasOne<CapitalPool>().WithMany().HasForeignKey(x => x.CapitalPoolId).OnDelete(DeleteBehavior.Restrict);
         var objective = model.Entity<Objective>(); objective.HasKey(x => x.Id); objective.Property(x => x.Revision).IsConcurrencyToken();
         objective.HasOne(x => x.Track).WithMany().HasForeignKey(x => x.TrackId).OnDelete(DeleteBehavior.Restrict);
         objective.Property(x => x.CreatedAt).HasConversion(v => v, v => DateTime.SpecifyKind(v, DateTimeKind.Utc));
@@ -39,6 +66,7 @@ public sealed class GhostWatchDbContext(DbContextOptions<GhostWatchDbContext> op
         var strategy = model.Entity<TrackStrategy>(); strategy.HasKey(x => x.TrackId); strategy.Property(x => x.Revision).IsConcurrencyToken();
         strategy.HasOne<EconomyTrack>().WithOne().HasForeignKey<TrackStrategy>(x => x.TrackId).OnDelete(DeleteBehavior.Restrict);
         var run = model.Entity<EconomicRun>(); run.HasKey(x => x.Id); run.Property(x => x.Revision).IsConcurrencyToken();
+        run.HasOne<Playbook>().WithMany().HasForeignKey(x => x.PlaybookId).OnDelete(DeleteBehavior.Restrict);
         run.HasOne(x => x.Track).WithMany().HasForeignKey(x => x.TrackId).OnDelete(DeleteBehavior.Restrict);
         run.HasOne(x => x.CapitalPool).WithMany().HasForeignKey(x => x.CapitalPoolId).OnDelete(DeleteBehavior.Restrict);
         run.Property(x => x.StartedAt).HasConversion(v => v, v => DateTime.SpecifyKind(v, DateTimeKind.Utc));

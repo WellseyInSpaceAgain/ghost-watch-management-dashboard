@@ -10,6 +10,7 @@ public sealed class EconomicRun
     public string Name { get; set; } = "";
     public Guid TrackId { get; set; }
     [JsonIgnore] public EconomyTrack Track { get; set; } = null!;
+    public Guid? PlaybookId { get; set; }
     public Guid? CapitalPoolId { get; set; }
     [JsonIgnore] public CapitalPool? CapitalPool { get; set; }
     public string RunType { get; set; } = "Other";
