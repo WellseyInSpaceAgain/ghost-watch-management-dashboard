@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/GhostWatch.Api/GhostWatch.Api.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/GhostWatch.Tests/GhostWatch.Tests.csproj" />
+  </Folder>
+</Solution>

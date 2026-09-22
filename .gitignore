@@ -1,0 +1,36 @@
+# Dependencies and generated output
+**/node_modules/
+**/bin/
+**/obj/
+**/dist/
+**/.angular/
+**/coverage/
+**/TestResults/
+**/playwright-report/
+**/test-results/
+# Local data, credentials, and key rings
+**/App_Data/
+**/data/
+*.db
+*.db-*
+*.sqlite
+*.sqlite-*
+*.sqlite3
+*.sqlite3-*
+.env
+.env.*
+!.env.example
+**/appsettings.Local.json
+**/appsettings.*.local.json
+**/secrets.json
+**/keys/
+*.pfx
+*.pem
+# Editor and machine state
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+.DS_Store
+*.log

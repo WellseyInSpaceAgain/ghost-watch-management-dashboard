@@ -1,0 +1,19 @@
+<a class="skip-link" href="#main-content">Skip to content</a>
+<div class="console">
+  <aside class="sidebar">
+    <a class="identity" routerLink="/" aria-label="Ghost Watch Management Dashboard home">
+      <span class="monogram" aria-hidden="true">GW</span>
+      <span><strong>GHOST WATCH</strong><small>Management Dashboard</small></span>
+    </a>
+    <nav aria-label="Main navigation">
+      <div class="nav-label">ECONOMICS</div>
+      <a routerLink="/" routerLinkActive="selected" [routerLinkActiveOptions]="{exact: true}">Overview</a>
+    </nav>
+    <div class="sidebar-footer"><span class="indicator"></span> LOCAL OPERATIONS CONSOLE</div>
+  </aside>
+  <div class="workspace">
+    <header class="topbar"><span>GHOST WATCH / <strong>ECONOMICS</strong></span><span class="tag">LOCAL</span></header>
+    <main id="main-content" tabindex="-1"><router-outlet /></main>
+    <footer>Ghost Watch Management Dashboard · Economics</footer>
+  </div>
+</div>
