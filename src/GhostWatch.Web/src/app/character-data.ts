@@ -69,13 +69,13 @@ interface CharacterData {
         } @else { <p class="muted">Unknown — no successful skill data refresh yet.</p> }
         <p class="muted" style="margin-top:16px">These are skill-based limits, not free slots or recipe eligibility. PI skill potential does not verify subscription, export or facility access. Missing active skill levels remain unknown.</p>
       </section>
-      <section class="panel"><h2>Industry jobs</h2>
+      <section class="panel"><div class="section-heading"><h2>Industry jobs</h2><a routerLink="/industry-jobs">Manage Run associations →</a></div>
         @if (current.jobs.length) {
           <div class="table-wrap"><table><thead><tr><th>Job</th><th>Activity</th><th>Product / Blueprint</th><th>Runs</th><th>Status</th><th>End</th><th>Last seen</th></tr></thead><tbody>
           @for (job of current.jobs; track job.jobId) { <tr><td>{{ job.jobId }}</td><td>{{ activity(job.activityId) }}</td><td>{{ job.productName || job.blueprintName || 'Product name unavailable' }}<small>Type {{ job.productTypeId ?? job.blueprintTypeId }}</small></td><td>{{ job.runs }}</td><td>{{ job.status }}</td><td>{{ job.endDate | date:'medium' }}</td><td>{{ job.lastSeenAt | date:'medium' }}</td></tr> }
           </tbody></table></div>
         } @else { <p class="muted">{{ section('industryJobs')?.updatedAt ? 'No industry jobs returned by EVE.' : 'Industry jobs have not been collected yet.' }}</p> }
-        <p class="muted" style="margin-top:16px">Jobs remain in local history when they leave EVE's response window. Status is last observed, not inferred. Run associations are not available yet.</p>
+        <p class="muted" style="margin-top:16px">Jobs remain in local history when they leave EVE's response window. Status is last observed, not inferred. Manage job associations from the Industry Jobs page.</p>
       </section>
       <app-eve-facts [facts]="current.facts ?? null" [assessment]="current.assessment ?? null" [sections]="current.sections" />
       <app-inventory-view [inventory]="current.inventory ?? null" [sections]="current.sections" />

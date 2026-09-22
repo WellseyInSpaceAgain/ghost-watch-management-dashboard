@@ -112,6 +112,10 @@ public class EsiTests
         var wallet = await db.EveSections.SingleAsync(x => x.Name == "wallet");
         var successAt = wallet.UpdatedAt;
         Assert.Equal("123456.78", wallet.Json);
+        var localRun = new GhostWatch.Api.Economics.Runs.EconomicRun { Name = "Preserved batch", TrackId = (await db.EconomyTracks.SingleAsync()).Id, Notes = "Manual run notes", ExpectedInputCost = 77 };
+        db.EconomicRuns.Add(localRun);
+        db.RunJobs.Add(new() { CharacterId = 7, JobId = 42, RunId = localRun.Id });
+        await db.SaveChangesAsync();
         stage = 1;
         Assert.False(await refresh.Refresh(7, _ => { }, default));
         Assert.Equal("123456.78", wallet.Json);
@@ -133,6 +137,9 @@ public class EsiTests
         Assert.Equal(3, result["capacity"]!["active"]!["manufacturingJobs"]!.GetValue<int>());
         Assert.DoesNotContain("test-token", result.ToJsonString());
         Assert.Equal("Industrial reserve", (await db.CharacterPlans.SingleAsync()).Assignment);
+        Assert.Single(await db.RunJobs.ToListAsync());
+        Assert.Equal("Manual run notes", (await db.EconomicRuns.SingleAsync()).Notes);
+        Assert.Equal(77, (await db.EconomicRuns.SingleAsync()).ExpectedInputCost);
         Assert.Equal(HttpStatusCode.Forbidden, (await browser.PostAsync("/api/eve/characters/7/refresh", null)).StatusCode);
     }
 

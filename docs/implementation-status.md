@@ -23,13 +23,13 @@ States: **done** = end-to-end implemented and automated verification recorded; *
 | 15 | Capital adjustments/transfers | done | Atomic conceptual movements with immutable named history |
 | 16 | Compare allocation to real wallets | done | Over-allocation warning, complete/partial/stale wallet states |
 | 17 | View ESI industry jobs | done | Named products and retained job history on character detail |
-| 18 | Identify unassociated jobs | pending | |
-| 19 | Run from ESI job | pending | |
-| 20 | Associate jobs with Runs | pending | Include removing associations |
-| 21 | Manual Runs | in progress | Next vertical slice |
-| 22 | Expected financial results | pending | |
-| 23 | Actual financial results | pending | |
-| 24 | Run verdicts | pending | R&D success independent of profit |
+| 18 | Identify unassociated jobs | done | Named industry-job table and unassociated filter |
+| 19 | Run from ESI job | done | Prefilled form and atomic create/association endpoint |
+| 20 | Associate jobs with Runs | done | Multiple jobs per Run; explicit remove/reassociate; preserved through refresh |
+| 21 | Manual Runs | done | Creation/editing, manual type/purpose/status and retained notes |
+| 22 | Expected financial results | done | Independent nullable input/other cost/revenue and calculated profit |
+| 23 | Actual financial results | done | Independent actuals, margin, durations and efficiency |
+| 24 | Run verdicts | done | R&D completion and successful verdict work without revenue |
 | 25 | Run/Track metrics | pending | Central calculations, selected KPIs and manual T3 stages |
 | 26 | Replacement Packages | pending | |
 | 27 | Replacement coverage | pending | |

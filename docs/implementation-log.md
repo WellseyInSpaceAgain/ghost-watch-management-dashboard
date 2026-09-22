@@ -34,3 +34,12 @@
 - Added central nullable financial functions for subsequent Run/snapshot use. Blank financial values stay unknown; users can explicitly record zero where it is known.
 - Backend verification: 69 tests pass, including transfer history/atomicity, over-allocation, wallet isolation, stale revisions and legacy migrations.
 - Browser checks verify pool creation, allocation/transfer history and reload persistence; Track archive/restore and narrow-screen checks pass after making the expanded navigation wrap. Angular production build passes.
+
+## Economic Runs and ESI job associations
+
+- Added first-class manual Runs with Track/pool references, type/purpose/status, nullable expected and actual finance, dates, duration, slots, time-to-sell, verdict and notes. Stale edits conflict rather than overwrite. Playbook linkage follows in the knowledge slice.
+- Added `RunJob` with stable `(CharacterId, JobId)` identity and restrictive foreign keys. One Run may hold several jobs; a job belongs to at most one Run until explicitly unassociated. Creating an assisted Run and its association is atomic.
+- Industry Jobs now provides names, association state, Create Run, associate existing Run and remove association. ESI retains ownership of job state; it never changes Run notes or financial values.
+- Central financials distinguish estimates from actuals and preserve unknowns. Slot-days require explicit duration and concurrency. R&D can complete with absent revenue and a successful verdict; explicitly recording zero revenue permits calculating a loss.
+- Active/Selling Run costs are committed capital: use complete actual costs, otherwise complete expected costs, otherwise unknown. Pool available capital follows allocated minus commitments; immutable conceptual allocations do not automatically absorb trading profit or expenditure.
+- Verification: 71 backend tests; full browser integration covered all existing workflows, with a new-Run empty-ID submission bug found and fixed. Both Run workflow tests then pass. Production backend/frontend builds and isolated Compose migrations/persistence checks pass.

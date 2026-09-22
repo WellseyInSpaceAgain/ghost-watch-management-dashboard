@@ -125,3 +125,11 @@ Existing connections initially show **Permissions not checked** after this upgra
 Use **Accounts** to create manual account groups and record Unknown/Alpha/Omega subscription state. On character detail, **Economic assignment** saves account membership, a planning label, notes and any number of Track links. These records remain separate from EVE identity and refreshable facts.
 
 Character detail provides searchable named skills, skill queue, orders, PI colonies, standings and loyalty tables. Economic foundations show trained and active skill evidence, dormant skills and explicit limits on recipe eligibility. Refresh uses ten independently retained sections; metadata failures preserve raw facts with warnings.
+
+### Capital and execution
+
+**Capital Pools** manages conceptual allocations, targets and adjustment/transfer history, with warnings when complete collected wallets do not cover the allocation. Set a Track's default pool in its details. Programme roles identify Core Capital and Treasury independently of pool names.
+
+**Runs** supports manual batches, trading, PI, R&D, strategic supply and other attempts. Keep expected and actual input/other cost/revenue separate. Blank amounts remain unknown; explicit zero is valid. Completed/evaluated Runs require a completion date but do not require revenue.
+
+**Industry Jobs** lists retained factual jobs with their current Run/Track association. Create a Run from a job, associate several jobs with an existing Run, or remove an association without deleting the job. ESI refresh preserves all local annotations. Active/Selling Runs commit complete actual costs or, when unavailable, complete expected costs; a missing commitment estimate makes available capital unknown.

@@ -1,4 +1,5 @@
 using System.Text.Json.Nodes;
+using GhostWatch.Api.Economics.Runs;
 using GhostWatch.Api.Data;
 using Microsoft.EntityFrameworkCore;
 
@@ -53,6 +54,8 @@ public static class CapitalEndpoints
     public static async Task<IResult> Summary(GhostWatchDbContext db, CancellationToken ct)
     {
         var pools = await db.CapitalPools.AsNoTracking().OrderBy(x => x.Name).ToListAsync(ct);
+        var runs = await db.EconomicRuns.AsNoTracking().ToListAsync(ct);
+        var metrics = pools.ToDictionary(x => x.Id, x => RunMetrics.PoolSummary(x.AllocatedCapital, runs.Where(r => r.CapitalPoolId == x.Id)));
         var characters = await db.EveCharacters.CountAsync(ct);
         var wallets = await db.EveSections.AsNoTracking().Where(x => x.Name == "wallet").ToListAsync(ct);
         var known = wallets.Where(x => x.Json is not null).ToArray();
@@ -61,7 +64,7 @@ public static class CapitalEndpoints
         var total = pools.Sum(x => x.AllocatedCapital); // Archival never silently deallocates capital.
         var adjustments = (await db.CapitalAdjustments.AsNoTracking().OrderByDescending(x => x.CreatedAt).ToListAsync(ct))
             .Select(x => new { x.Id, x.Date, x.FromPoolId, x.ToPoolId, fromName = pools.Find(p => p.Id == x.FromPoolId)?.Name ?? "Unallocated", toName = pools.Find(p => p.Id == x.ToPoolId)?.Name ?? "Unallocated", x.Amount, x.Reason, x.Notes });
-        return Results.Ok(new { pools, adjustments, roles = Roles, allocated = total, liquid, knownLiquid,
+        return Results.Ok(new { pools, metrics, adjustments, roles = Roles, allocated = total, liquid, knownLiquid,
             walletCount = known.Length, characterCount = characters, walletsStale = known.Any(x => x.Error is not null || x.UpdatedAt == null || x.UpdatedAt < DateTime.UtcNow.AddDays(-1)),
             overAllocated = liquid is { } value ? Math.Max(0, total - value) : (decimal?)null });
     }

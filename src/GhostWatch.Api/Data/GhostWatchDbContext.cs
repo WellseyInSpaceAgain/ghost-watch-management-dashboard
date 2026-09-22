@@ -1,5 +1,6 @@
 using GhostWatch.Api.Economics.Tracks;
 using GhostWatch.Api.Economics.Capital;
+using GhostWatch.Api.Economics.Runs;
 using GhostWatch.Api.Management;
 using GhostWatch.Api.Eve;
 using GhostWatch.Api.Eve.Inventory;
@@ -10,6 +11,8 @@ namespace GhostWatch.Api.Data;
 
 public sealed class GhostWatchDbContext(DbContextOptions<GhostWatchDbContext> options) : DbContext(options)
 {
+    public DbSet<EconomicRun> EconomicRuns => Set<EconomicRun>();
+    public DbSet<RunJob> RunJobs => Set<RunJob>();
     public DbSet<CapitalPool> CapitalPools => Set<CapitalPool>();
     public DbSet<CapitalAdjustment> CapitalAdjustments => Set<CapitalAdjustment>();
     public DbSet<ManagedAccount> ManagedAccounts => Set<ManagedAccount>();
@@ -24,6 +27,16 @@ public sealed class GhostWatchDbContext(DbContextOptions<GhostWatchDbContext> op
 
     protected override void OnModelCreating(ModelBuilder model)
     {
+        var run = model.Entity<EconomicRun>(); run.HasKey(x => x.Id); run.Property(x => x.Revision).IsConcurrencyToken();
+        run.HasOne(x => x.Track).WithMany().HasForeignKey(x => x.TrackId).OnDelete(DeleteBehavior.Restrict);
+        run.HasOne(x => x.CapitalPool).WithMany().HasForeignKey(x => x.CapitalPoolId).OnDelete(DeleteBehavior.Restrict);
+        run.Property(x => x.StartedAt).HasConversion(v => v, v => DateTime.SpecifyKind(v, DateTimeKind.Utc));
+        run.Property(x => x.CreatedAt).HasConversion(v => v, v => DateTime.SpecifyKind(v, DateTimeKind.Utc));
+        run.Property(x => x.UpdatedAt).HasConversion(v => v, v => DateTime.SpecifyKind(v, DateTimeKind.Utc));
+        run.Property(x => x.CompletedAt).HasConversion(v => v, v => v.HasValue ? DateTime.SpecifyKind(v.Value, DateTimeKind.Utc) : (DateTime?)null);
+        var runJob = model.Entity<RunJob>(); runJob.HasKey(x => new { x.CharacterId, x.JobId });
+        runJob.HasOne(x => x.Run).WithMany().HasForeignKey(x => x.RunId).OnDelete(DeleteBehavior.Restrict);
+        runJob.HasOne(x => x.Job).WithMany().HasForeignKey(x => new { x.CharacterId, x.JobId }).OnDelete(DeleteBehavior.Restrict);
         var pool = model.Entity<CapitalPool>(); pool.HasKey(x => x.Id); pool.Property(x => x.Revision).IsConcurrencyToken();
         pool.Property(x => x.CreatedAt).HasConversion(v => v, v => DateTime.SpecifyKind(v, DateTimeKind.Utc));
         pool.Property(x => x.UpdatedAt).HasConversion(v => v, v => DateTime.SpecifyKind(v, DateTimeKind.Utc));
