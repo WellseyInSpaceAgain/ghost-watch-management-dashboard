@@ -35,7 +35,14 @@ These scopes cover the character economics requested by the brief. They are gran
 
 ## Configure a container
 
-Create an ignored `.env` file at the repository root using a local editor:
+Copy the tracked template, then edit `.env` locally:
+
+```bash
+cp .env.example .env
+chmod 600 .env
+```
+
+Fill in your client ID and secret in the ignored `.env` file:
 
 ```dotenv
 Eve__ClientId=YOUR_CLIENT_ID
@@ -48,16 +55,10 @@ Restrict the file with `chmod 600 .env`. Do not paste its contents into chat, lo
 From Distrobox, use host Podman and the shared workspace path:
 
 ```bash
-distrobox-host-exec podman build -t localhost/ghost-watch-dashboard:dev .
-distrobox-host-exec podman volume create ghost-watch-data
-distrobox-host-exec podman run -d --name ghost-watch \
-  -p 127.0.0.1:8080:8080 \
-  --env-file "$PWD/.env" \
-  -v ghost-watch-data:/app/data \
-  localhost/ghost-watch-dashboard:dev
+distrobox-host-exec podman compose up -d --build
 ```
 
-When running directly on the host, omit `distrobox-host-exec`. If `ghost-watch` already exists, stop/remove that application container before recreating it; keep the named volume. For Docker Compose, `docker compose up --build -d` reads the same `.env` configuration.
+From the host, use `podman compose up -d --build`, or `docker compose up -d --build` with Docker. Compose reads the `.env` configuration and manages the persistent volume. For subsequent starts without source changes, omit `--build`. Stop with `podman compose down` or `docker compose down` (through `distrobox-host-exec` here); keep the data volume.
 
 ## Configure development mode instead
 

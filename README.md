@@ -69,16 +69,26 @@ For a local backup, stop the application and copy its entire data directory. SQL
 ## Containers
 
 ```bash
-docker compose up --build -d
+cp .env.example .env
+chmod 600 .env
+```
+
+Edit `.env` locally to configure EVE SSO. Empty credentials allow the app to run with the setup prompt.
+
+```bash
+docker compose up -d --build
+# or: podman compose up -d --build
+# From this Distrobox: distrobox-host-exec podman compose up -d --build
 ```
 
 Open http://localhost:8080. The multi-stage image serves the compiled Angular UI and API from one origin. SQLite persists in the `ghost-watch-data` volume. The published port binds to loopback for personal/local use; there is no multi-user application authentication.
 
 ```bash
 docker compose down
+# or: podman compose down
 ```
 
-This preserves the volume. Do not add `--volumes` unless you intend to delete the database. The image has been built and smoke-tested using host Podman through `distrobox-host-exec`. Docker Compose itself has not been executed.
+This preserves the volume. Do not add `--volumes` unless you intend to delete the database. The image has been built and smoke-tested using host Podman through `distrobox-host-exec`. Container startup and smoke verification use the repository Compose file.
 
 To repeat host Podman image and persistence verification from Distrobox:
 

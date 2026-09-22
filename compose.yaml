@@ -1,8 +1,9 @@
 services:
   ghost-watch:
+    image: localhost/ghost-watch-dashboard:dev
     build: .
     ports:
-      - "127.0.0.1:8080:8080"
+      - "127.0.0.1:${GHOST_WATCH_PORT:-8080}:8080"
     environment:
       Eve__ClientId: ${Eve__ClientId:-}
       Eve__ClientSecret: ${Eve__ClientSecret:-}

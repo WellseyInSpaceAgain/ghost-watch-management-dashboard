@@ -1,21 +1,32 @@
-# Containers from Distrobox
+# Container operation with Compose
 
-Podman 5.8.7 is available on the host. From this Distrobox use `distrobox-host-exec podman`; the workspace under `/home/wellsey/Dev/ghost-watch-management-dashboard` is shared with the host.
-
-## Build and run
+Use the repository's `compose.yaml` for startup, configuration and persistence.
 
 ```bash
-distrobox-host-exec podman build -t localhost/ghost-watch-dashboard:dev .
-distrobox-host-exec podman volume create ghost-watch-data
-distrobox-host-exec podman run -d --name ghost-watch \
-  -p 127.0.0.1:8080:8080 \
-  -v ghost-watch-data:/app/data \
-  localhost/ghost-watch-dashboard:dev
+podman compose up -d --build
 ```
 
-Open http://localhost:8080. For SSO, configure credentials using [the setup guide](eve-sso-setup.md) and add `--env-file "$PWD/.env"` to the run command. Existing named containers must be stopped/removed before reusing their name; keep the data volume.
+Or with Docker:
 
-The image uses the non-root .NET `app` user. The named volume inherits the image data-directory ownership on first use; no privileged mode or world-writable permissions are needed. Using a named volume also avoids host bind-mount SELinux relabeling for runtime data.
+```bash
+docker compose up -d --build
+```
+
+After the initial build, `podman compose up -d` / `docker compose up -d` starts the existing image. Use `--build` after source changes. Open http://localhost:8080. Compose reads SSO settings from the ignored `.env` file described in [EVE setup](eve-sso-setup.md).
+
+## This Distrobox environment
+
+Podman is on the host, so invoke its Compose provider through Distrobox:
+
+```bash
+distrobox-host-exec podman compose up -d --build
+distrobox-host-exec podman compose logs -f
+distrobox-host-exec podman compose down
+```
+
+The workspace is shared with the host. The host's `podman compose` delegates to its installed Compose provider; no separate hand-written `podman run` command is needed.
+
+The service runs as the non-root .NET `app` user. A Compose-managed named volume persists `/app/data`, including SQLite and the data-protection keys. `compose down` preserves that volume. Do not add `--volumes` to normal shutdown unless you intend to delete your data.
 
 ## Repeatable smoke test
 
@@ -23,10 +34,6 @@ The image uses the non-root .NET `app` user. The named volume inherits the image
 python3 scripts/verify-container.py
 ```
 
-The script detects local Podman or falls back to host Podman, builds the image, and creates a uniquely named container and volume. It checks health, static UI, deep links, API errors, non-root execution and persistence after container recreation. It cleans up only its own temporary container and volume. Use `--skip-build` to verify the existing image.
+The script uses this same Compose file under a uniquely named test project, with an automatically assigned loopback port and empty SSO credentials. It builds and starts with `compose up -d --build`, checks health/UI/API/non-root execution, then uses `compose up -d --force-recreate` to verify volume persistence. Finally it removes only that test project's resources, including its test volume. `--skip-build` reuses the existing image.
 
-Verified with host Podman: the initial image builds and launches, applies SQLite migrations, and retains a Track after recreation with the same volume. The first npm install encountered a transient connection reset; the retry succeeded. Docker Compose itself has not been executed; the shared Dockerfile has been verified with Podman.
-
-## Preserve local data
-
-Stop the application before backing up its data volume. Preserve both the SQLite database and the data-protection key ring. Removing the application container does not remove a named volume; removing the volume deletes the stored data.
+Stop the normal application before backing up its volume; preserve both the database and keys. `GHOST_WATCH_PORT` can override the default 8080 host port. If changed for normal use, also update the registered and configured SSO callback URL.
