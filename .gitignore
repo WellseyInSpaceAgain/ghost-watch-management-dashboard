@@ -27,6 +27,7 @@
 *.pfx
 *.pem
 # Editor and machine state
+/~/
 .vs/
 .vscode/
 .idea/
