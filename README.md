@@ -2,15 +2,13 @@
 
 A local Ghost Watch operations console. Economics is the first module; the full brief is in [initial-prompt.md](initial-prompt.md).
 
-## Current milestone
+## Economics v1
 
-Implemented: dark responsive console, active Track overview, create/edit/archive/restore Economy Tracks, durable SQLite storage, API validation, revision checks that prevent stale edits from overwriting newer notes, EVE SSO character connections with protected refresh-token storage, and queued ESI refresh for wallets, skills, skill queues, market orders, industry jobs, assets, blueprints, PI colony summaries, standings and loyalty points. Archived Tracks retain their IDs, notes and creation dates.
+Manage Economy Tracks, manual or ESI-assisted Runs, conceptual Capital Pools, Objectives/Gates, Markdown Playbooks with revision history, flexible Records, Replacement Packages and immutable Economic Snapshots. Dashboard and Track pages combine operational tables, selected financial metrics, deterministic Needs Attention and reusable charts with persistent drag ordering and widths.
 
-The rest of the brief is still pending: PI/standings/LP refresh, account grouping, financial workflows, Runs, Capital Pools, knowledge records, Objectives, snapshots and charts. The headline metrics currently show explicit unavailable states. The user has manually verified the character connection/refresh workflow. The new assets/blueprints feature is covered by simulated EVE tests; live inventory verification remains to be done.
+Connect multiple EVE characters, group them into accounts, record subscription/assignments and refresh ten factual sections. Skills/capacity distinguish trained from currently usable levels. Named inventory distinguishes available stock, contained/fitted items, originals and blueprint copies. Per-character permissions and targeted re-authorisation preserve local management data.
 
-Start with [EVE SSO setup](docs/eve-sso-setup.md) to register the application and connect characters. For host Podman from Distrobox, see [container instructions](docs/containers.md).
-
-See [implementation progress](docs/implementation.md) and the [read-only EVE integration review](docs/eve-integration-reference.md).
+Start with [EVE SSO setup](docs/eve-sso-setup.md). For host Podman from Distrobox, see [container instructions](docs/containers.md). The [v1 status](docs/implementation-status.md), [implementation log](docs/implementation-log.md), [financial formulas](docs/financial-metrics.md), [chart schema and examples](docs/chart-configuration.md) and [EVE integration reference](docs/eve-integration-reference.md) describe the implementation. The [economic plan](docs/v1-economic-plan.md) records the user's operating strategy; it does not seed or overwrite application data.
 
 ## Development
 
@@ -58,13 +56,13 @@ This is a new application, database and Git history. The reference exporter rema
 
 The API applies committed migrations on startup. Default database: `src/GhostWatch.Api/App_Data/ghost-watch.db` when launched with `dotnet run`. Override the directory with `Storage__Directory` (prefer an absolute path). There is no automatic sample-data seeding.
 
-The current entities are `EconomyTrack`, `EveCharacter`, `EveSection`, `EveIndustryJob` and `PublicEveLookup`, with local-management tables separate from EVE identity/facts. Migrations: `AddEconomyTracks`, `AddEveCharacterAuthentication`, `AddEveFactualData` and `AddInventoryMetadata`. Capital Pool and character relationships, selected KPIs, and financial aggregates will be added with their owning features.
+Local management entities are separate from EVE identity, raw factual sections and public/private lookup caches. Committed migrations cover Tracks, character authentication/facts/scopes, accounts/assignments, capital/history, Runs/job links, Objectives/strategy, knowledge/revisions, Replacement Packages, selected KPIs, snapshots and charts. See [the v1 report](docs/v1-report.md) for the complete entity and migration inventory.
 
 ```bash
 dotnet ef migrations has-pending-model-changes --project src/GhostWatch.Api
 ```
 
-For a local backup, stop the application and copy its entire data directory. SQLite files and future key rings are ignored by Git and excluded from the Docker build context. Local configuration can go in ignored `src/GhostWatch.Api/appsettings.Local.json`; environment variables take precedence. Do not put EVE secrets in tracked configuration.
+For a local backup, stop the application and copy its entire data directory. SQLite files and persistent data-protection key rings are ignored by Git and excluded from the Docker build context. Local configuration can go in ignored `src/GhostWatch.Api/appsettings.Local.json`; environment variables take precedence. Do not put EVE secrets in tracked configuration.
 
 ## Containers
 
@@ -102,9 +100,9 @@ The smoke test creates and removes only its own temporary container and data vol
 
 Open **Characters**, select a connected character, then choose **Refresh EVE data**. Refresh runs in a background queue; the page polls only while queued/running. Repeated requests for the same character are rejected while its refresh is pending. The Characters page also has **Refresh all characters**, which queues every connected character and reports already-running refreshes or individual failures. Each character shows a live spinner, current section and x/n stage position, followed by Updated, Needs attention or Failed. The count denotes stage position, not successful section count; progress is in memory and resets to Idle on an application restart.
 
-Wallet balance, trained/active skill capacity and industry jobs have dedicated views. Raw collected records expose skills, queue and market orders for inspection; name enrichment and richer record views follow later. Each section shows attempt/success timestamps and safe errors. Failed responses retain previous data; jobs retain stable identity and history when absent from later ESI responses. No refresh writes to Economy Tracks.
+Wallet balance, trained/active capacity, skills, queue, orders, jobs, assets, blueprints, standings, loyalty points and PI colonies have named factual views. Each section shows attempt/success timestamps and safe errors. Failed responses retain previous data; jobs retain stable identity and history when absent from later ESI responses. Refresh only updates EVE identity/token metadata, facts and lookup caches; it never updates local economic management records.
 
-The character workflow has been manually verified by the user. This does not imply that the new inventory feature has been live-verified. The automated refresh tests use simulated EVE responses, including two-character refresh, failures, retries and malformed payloads.
+The user manually verified the original character workflow. Current live-check results and any remaining external verification are recorded in the v1 status/report. Automated refresh tests use simulated EVE responses, including multiple characters, failures, retries and malformed payloads.
 
 ## Assets and blueprints
 
@@ -133,3 +131,13 @@ Character detail provides searchable named skills, skill queue, orders, PI colon
 **Runs** supports manual batches, trading, PI, R&D, strategic supply and other attempts. Keep expected and actual input/other cost/revenue separate. Blank amounts remain unknown; explicit zero is valid. Completed/evaluated Runs require a completion date but do not require revenue.
 
 **Industry Jobs** lists retained factual jobs with their current Run/Track association. Create a Run from a job, associate several jobs with an existing Run, or remove an association without deleting the job. ESI refresh preserves all local annotations. Active/Selling Runs commit complete actual costs or, when unavailable, complete expected costs; a missing commitment estimate makes available capital unknown.
+
+## Knowledge, planning and history
+
+**Playbooks** are editable Markdown procedures with saved earlier versions. **Records** accept custom types and links to Tracks, Runs, Characters, Playbooks, Objectives and pools. **Objectives / Gates** use manual progress and checklist conditions. Track production stages provide a manual internalisation percentage.
+
+**Replacement Packages** store manual estimates and one optional default; coverage uses the Ghost Watch Treasury allocation. **Snapshots** provides **Take Snapshot** with an optional name/note. A background worker captures the current UTC month on startup when absent and checks hourly thereafter. History stores calculated values independently of later edits; no past months are fabricated.
+
+**Chart library** provides sample JSON, validation and live preview. Add a shared definition to Dashboard or Track chart areas, choose **Edit chart layout**, drag or use Move up/down, select widths and **Save layout**. Removing a placement retains its definition. Definitions update all their placements. [Chart configuration documentation](docs/chart-configuration.md) lists supported fields and historical-value semantics.
+
+Unknown financial inputs remain unknown. Enter zero explicitly when known; a successful R&D verdict does not imply profitable sales. No automatic sample management data is inserted into your normal database.

@@ -50,3 +50,9 @@ tbody tr:hover { background: #15232a; }
 .compact-form .check { display:flex; align-items:center; gap:10px; padding:6px; }
 .compact-form .check input { width:auto; }
 .compact-form button { justify-self:start; }
+
+/* Markdown descendants are created by sanitized innerHTML and have no component style attribute. */
+app-markdown-view pre { overflow-x:auto; max-width:100%; padding:12px; background:#17232b; }
+app-markdown-view img { max-width:100%; height:auto; }
+app-markdown-view table { display:block; overflow-x:auto; }
+app-markdown-view blockquote { border-left:2px solid #6abbaa; margin-left:0; padding-left:16px; color:#b3c2ca; }

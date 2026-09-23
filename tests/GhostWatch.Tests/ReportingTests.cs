@@ -29,4 +29,18 @@ public class ReportingTests
   Assert.Equal(HttpStatusCode.Conflict,(await browser.PutAsJsonAsync($"/api/economics/tracks/{trackId}/kpis",new KpiInput([]))).StatusCode);
   Assert.Equal(HttpStatusCode.BadRequest,(await browser.PutAsJsonAsync($"/api/economics/tracks/{trackId}/kpis",new KpiInput(["madeUp"],1))).StatusCode);
  }
+ [Fact] public async Task Attention_rules_cover_execution_planning_allocation_and_stale_facts_without_penalising_research()
+ {
+  await using var app=new TestApplication();using var browser=app.CreateClient();using var scope=app.Services.CreateScope();var db=scope.ServiceProvider.GetRequiredService<GhostWatchDbContext>();
+  var pool=new CapitalPool{Name="Capital",AllocatedCapital=100};var track=new EconomyTrack{Name="Workshop"};db.CapitalPools.Add(pool);db.EconomyTracks.Add(track);
+  db.EveCharacters.Add(new(){CharacterId=42,CharacterName="Pilot"});
+  db.EveSections.Add(new(){CharacterId=42,Name="wallet",Json="10",UpdatedAt=DateTime.UtcNow.AddDays(-2)});
+  db.EveIndustryJobs.Add(new(){CharacterId=42,JobId=1,Status="active"});
+  db.EconomicRuns.AddRange(new EconomicRun{Name="Missing sales",TrackId=track.Id,Status="Completed",CompletedAt=DateTime.UtcNow,ActualRevenue=null},new EconomicRun{Name="Research success",TrackId=track.Id,Purpose="R&D",Status="Completed",CompletedAt=DateTime.UtcNow,Verdict="R&D Successful",ActualRevenue=null},new EconomicRun{Name="Committed batch",TrackId=track.Id,CapitalPoolId=pool.Id,Status="Active",ExpectedInputCost=95,ExpectedOtherCost=0});
+  db.Objectives.Add(new(){Name="Overdue gate",Type="Gate",Status="Active",TargetDate=DateTime.UtcNow.AddDays(-1),ConditionsJson="[{\"Label\":\"Demand\",\"Done\":false}]"});await db.SaveChangesAsync();
+  var summary=await EconomicReporting.Capture(db,DateTime.UtcNow,default);var items=await EconomicReporting.Attention(db,summary,default);
+  Assert.Equal(new[]{"incomplete-checklist","missing-sales","over-allocation","overdue-objective","pool-utilisation","unassociated-jobs","unevaluated-run","wallet-freshness"},items.Select(x=>x.Rule).Order().ToArray());
+  Assert.DoesNotContain(items,x=>x.Message.Contains("Research success"));Assert.All(items,x=>Assert.StartsWith("/",x.Path));
+ }
+
 }

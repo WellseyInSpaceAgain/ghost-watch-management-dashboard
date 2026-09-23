@@ -116,6 +116,48 @@ public class EsiTests
         db.EconomicRuns.Add(localRun);
         db.RunJobs.Add(new() { CharacterId = 7, JobId = 42, RunId = localRun.Id });
         await db.SaveChangesAsync();
+        // Populate every local management family, then compare fresh database reads across refreshes.
+        var pool = new GhostWatch.Api.Economics.Capital.CapitalPool { Name = "Workshop allocation", AllocatedCapital = 500 };
+        var book = new GhostWatch.Api.Knowledge.Playbook { Name = "Procedure", MarkdownBody = "# Keep this", Revision = 2 };
+        var record = new GhostWatch.Api.Knowledge.EconomicRecord { Title = "Decision", MarkdownBody = "Retest this product" };
+        var account = new GhostWatch.Api.Management.ManagedAccount { Name = "Manual group", Subscription = "Omega" };
+        db.CapitalPools.Add(pool); db.Playbooks.Add(book); db.EconomicRecords.Add(record); db.ManagedAccounts.Add(account);
+        track.DefaultCapitalPoolId = pool.Id;
+        (await db.CharacterPlans.SingleAsync()).AccountId = account.Id;
+        db.CharacterTracks.Add(new() { CharacterId = 7, TrackId = track.Id });
+        localRun.CapitalPoolId = pool.Id; localRun.PlaybookId = book.Id; localRun.ExpectedOtherCost = 6; localRun.ExpectedRevenue = 110;
+        localRun.ActualInputCost = 20; localRun.ActualOtherCost = 0; localRun.ActualRevenue = 30; localRun.Verdict = "Retest";
+        db.CapitalAdjustments.Add(new() { ToPoolId = pool.Id, Amount = 500, Reason = "Initial allocation" });
+        db.PlaybookRevisions.Add(new() { PlaybookId = book.Id, Version = 1, Name = book.Name, MarkdownBody = "# Original", SavedAt = DateTime.UtcNow.AddDays(-1) });
+        db.KnowledgeLinks.AddRange(new() { PlaybookId = book.Id, TrackId = track.Id }, new() { RecordId = record.Id, RunId = localRun.Id });
+        db.Objectives.Add(new() { Name = "Gate", TrackId = track.Id, Type = "Gate", ManualProgress = 25, Notes = "Manual readiness" });
+        db.ReplacementPackages.Add(new() { Name = "Doctrine", EstimatedReplacementValue = 800, IsDefault = true });
+        db.TrackStrategies.Add(new() { TrackId = track.Id, StagesJson = "[{\"Name\":\"Hull\",\"Internal\":true}]" });
+        db.TrackKpiSelections.Add(new() { TrackId = track.Id, KeysJson = "[\"rdSpend\"]" });
+        var chart = new GhostWatch.Api.Economics.Charts.ChartDefinition { Name = "Preserved chart", ConfigJson = GhostWatch.Api.Economics.Charts.ChartValidation.Sample };
+        db.ChartDefinitions.Add(chart); db.ChartPlacements.Add(new() { ChartDefinitionId = chart.Id, PageType = "Track", PageId = track.Id, Width = "Wide" });
+        await db.SaveChangesAsync();
+        await scope.ServiceProvider.GetRequiredService<GhostWatch.Api.Economics.Snapshots.SnapshotStore>().Capture(DateTime.UtcNow, false, "Before refresh", null, default);
+        async Task<string> ManagementState()
+        {
+            using var readScope = app.Services.CreateScope();
+            var read = readScope.ServiceProvider.GetRequiredService<GhostWatchDbContext>();
+            var values = new List<string>();
+            async Task Add<T>() where T : class
+            {
+                var rows = await read.Set<T>().AsNoTracking().ToListAsync();
+                values.Add(typeof(T).Name + ":" + string.Join("|", rows.Select(x => System.Text.Json.JsonSerializer.Serialize(x)).Order(StringComparer.Ordinal)));
+            }
+            await Add<EconomyTrack>(); await Add<GhostWatch.Api.Economics.Runs.EconomicRun>(); await Add<GhostWatch.Api.Economics.Runs.RunJob>();
+            await Add<GhostWatch.Api.Management.ManagedAccount>(); await Add<GhostWatch.Api.Management.CharacterPlan>(); await Add<GhostWatch.Api.Management.CharacterTrack>();
+            await Add<GhostWatch.Api.Economics.Capital.CapitalPool>(); await Add<GhostWatch.Api.Economics.Capital.CapitalAdjustment>();
+            await Add<GhostWatch.Api.Knowledge.Playbook>(); await Add<GhostWatch.Api.Knowledge.PlaybookRevision>(); await Add<GhostWatch.Api.Knowledge.EconomicRecord>(); await Add<GhostWatch.Api.Knowledge.KnowledgeLink>();
+            await Add<GhostWatch.Api.Economics.Planning.Objective>(); await Add<GhostWatch.Api.Economics.Planning.TrackStrategy>(); await Add<GhostWatch.Api.Economics.Reporting.TrackKpiSelection>();
+            await Add<GhostWatch.Api.Economics.Replacement.ReplacementPackage>(); await Add<GhostWatch.Api.Economics.Snapshots.EconomicSnapshot>();
+            await Add<GhostWatch.Api.Economics.Charts.ChartDefinition>(); await Add<GhostWatch.Api.Economics.Charts.ChartPlacement>();
+            return string.Join("\n", values);
+        }
+        var localState = await ManagementState();
         stage = 1;
         Assert.False(await refresh.Refresh(7, _ => { }, default));
         Assert.Equal("123456.78", wallet.Json);
@@ -140,6 +182,7 @@ public class EsiTests
         Assert.Single(await db.RunJobs.ToListAsync());
         Assert.Equal("Manual run notes", (await db.EconomicRuns.SingleAsync()).Notes);
         Assert.Equal(77, (await db.EconomicRuns.SingleAsync()).ExpectedInputCost);
+        Assert.Equal(localState, await ManagementState());
         Assert.Equal(HttpStatusCode.Forbidden, (await browser.PostAsync("/api/eve/characters/7/refresh", null)).StatusCode);
     }
 

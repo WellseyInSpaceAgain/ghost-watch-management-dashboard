@@ -2,7 +2,7 @@
 
 Inspected read-only: `/home/wellsey/Dev/eve-economic-snapshot-exporter`, commit `6a2726a`. The reference working tree was clean when reviewed. No database, migrations, credentials, build output or Git history were copied. The inspected `SsoClient` helper was subsequently selectively ported and adapted for Ghost Watch.
 
-This document records observed behaviour in that repository. Ghost Watch now implements SSO and the first ESI refresh slice described below. Register the new application and callback URI using `eve-sso-setup.md` before live verification.
+This document records observed behaviour in that repository. Ghost Watch implements SSO and all ten scoped factual refresh sections described below. Register the new application and callback URI using `eve-sso-setup.md` before live verification.
 
 ## Useful source files
 
@@ -67,13 +67,13 @@ Future local account state, assignments, Track links and Run annotations must be
 
 `Eve/Auth/SsoClient.cs` selectively ports the inspected metadata, Basic token exchange, JWT verification and refresh-token helper with Ghost Watch namespaces, context and data-protection purpose. The callback and state store were written around the new model, with atomic state consumption and explicit public character projections. Changed ownership is rejected rather than clearing exporter snapshot sections. No exporter snapshot architecture was adopted.
 
-Character connections and the refresh-token service pass signed-token fake-provider tests. The user has manually verified the character workflow; the first ESI client/section/capacity slice is now implemented, with inventory type/group enrichment now added; broader assessments and other name enrichment remain pending. Current SSO guidance was also checked against [EVE's current documentation](https://developers.eveonline.com/docs/services/sso/).
+Character connections and the refresh-token service pass signed-token fake-provider tests. The user has manually verified the character workflow; the first ESI client/section/capacity slice is now implemented, with inventory type/group enrichment now added; broad economic foundations and remaining factual name enrichment are also implemented. Current SSO guidance was also checked against [EVE's current documentation](https://developers.eveonline.com/docs/services/sso/).
 
 ## Implemented ESI slice
 
-`Eve/Esi/EsiClient.cs` selectively adapts the reference client with relative-path validation, no redirect following, cache partitioning, retry/error-budget behavior and full-page collection. `CapacityCalculator` adapts its trained/active slot formulas. Refresh orchestration follows the reference's last-success retention pattern but persists stable industry-job rows separately from replaceable section JSON and future local Run relationships.
+`Eve/Esi/EsiClient.cs` selectively adapts the reference client with relative-path validation, no redirect following, cache partitioning, retry/error-budget behavior and full-page collection. `CapacityCalculator` adapts its trained/active slot formulas. Refresh orchestration follows the reference's last-success retention pattern but persists stable industry-job rows separately from replaceable section JSON and local Run relationships.
 
-Currently called endpoints: character wallet, skills, skillqueue, industry/jobs (`include_completed=true`), orders, assets and blueprints, using their scope rows above. Compatibility date is pinned to `2026-09-22`, matching the inspected reference. Assets and blueprints now use full X-Pages pagination with replacement only after all pages validate. No exporter database, migrations or runtime data were imported.
+Currently called endpoints: character wallet, skills, skillqueue, industry/jobs (`include_completed=true`), orders, assets, blueprints, planets (colony summaries), standings and loyalty/points, using their scope rows above. Compatibility date is pinned to `2026-09-22`, matching the inspected reference. Assets and blueprints now use full X-Pages pagination with replacement only after all pages validate. No exporter database, migrations or runtime data were imported.
 
 ## Inventory reference adaptation
 

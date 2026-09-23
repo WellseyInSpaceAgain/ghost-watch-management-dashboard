@@ -33,6 +33,8 @@ public class ChartTests
   var scoped=Config(filters:new(TrackId:"CURRENT_TRACK"));Assert.Equal(HttpStatusCode.BadRequest,(await browser.PostAsJsonAsync("/api/economics/charts/preview",new PreviewInput(scoped))).StatusCode);
   (await browser.PostAsJsonAsync("/api/economics/charts/preview",new PreviewInput(scoped,trackId))).EnsureSuccessStatusCode();
   Assert.Throws<ChartValidationException>(()=>ChartValidation.Parse(Config(field:"ProtectedRefreshToken")));
+  Assert.Throws<ChartValidationException>(()=>ChartValidation.Parse(Config(source:"arbitraryTable")));
+  var malformed=await browser.PostAsJsonAsync("/api/economics/charts/preview",new PreviewInput("{"));Assert.Equal(HttpStatusCode.BadRequest,malformed.StatusCode);Assert.Contains("Invalid chart JSON",await malformed.Content.ReadAsStringAsync());
   Assert.Throws<ChartValidationException>(()=>ChartValidation.Parse(Config(source:"tracks",field:"profit30d",dimension:"name",filters:new(Product:"Shield"))));
  }
  [Fact] public async Task Historical_charts_use_stored_values_and_shared_placements_keep_independent_layouts()
