@@ -22,7 +22,7 @@ public class RunTests
             foreach (var id in new long[] { 41, 42 }) db.EveIndustryJobs.Add(new() { CharacterId = 7, JobId = id, BlueprintTypeId = 100, ProductTypeId = 101, Runs = 10, Status = "active", StartDate = DateTime.UtcNow, EndDate = DateTime.UtcNow.AddDays(1), RawJson = "{}" });
             await db.SaveChangesAsync();
         }
-        var run = new EconomicRun { Name = "Manual batch", TrackId = trackId, CapitalPoolId = poolId, Status = "Active", ExpectedInputCost = 200, ExpectedOtherCost = 20, ExpectedRevenue = 300, ActualInputCost = 210, ActualOtherCost = 30, ActualRevenue = 330, Notes = "Keep this manual estimate", ManufacturingHours = 24, ConcurrentSlots = 2 };
+        var run = new EconomicRun { Name = "Manual batch", TrackId = trackId, CapitalPoolId = poolId, Status = "Active", ExpectedInputCost = 200, ExpectedJobCost = 0, ExpectedOtherCost = 20, ExpectedRevenue = 300, ActualInputCost = 210, ActualJobCost = 0, ActualOtherCost = 30, ActualRevenue = 330, Notes = "Keep this manual estimate", ManufacturingHours = 24, ConcurrentSlots = 2 };
         var response = await browser.PostAsJsonAsync("/api/economics/runs", new RunInput(run)); response.EnsureSuccessStatusCode();
         var idValue = (await response.Content.ReadFromJsonAsync<JsonObject>())!["id"]!.GetValue<Guid>();
         var view = (await browser.GetFromJsonAsync<JsonObject>($"/api/economics/runs/{idValue}"))!;
@@ -36,7 +36,7 @@ public class RunTests
         Assert.Equal(2, linked.Count); Assert.Equal("Manual batch", linked[0]!["runName"]!.GetValue<string>());
         Assert.Equal(HttpStatusCode.Conflict, (await browser.PostAsJsonAsync($"/api/economics/runs/{idValue}/jobs", new JobReference(7, 41))).StatusCode);
         (await browser.DeleteAsync($"/api/economics/runs/{idValue}/jobs/7/41")).EnsureSuccessStatusCode();
-        var manual = new EconomicRun { Name = "Assisted experiment", TrackId = trackId, RunType = "R&D", Purpose = "R&D", Status = "Completed", Verdict = "R&D Successful", StartedAt = DateTime.UtcNow.AddDays(-1), CompletedAt = DateTime.UtcNow, ActualInputCost = 80, ActualOtherCost = 0 };
+        var manual = new EconomicRun { Name = "Assisted experiment", TrackId = trackId, RunType = "R&D", Purpose = "R&D", Status = "Completed", Verdict = "R&D Successful", StartedAt = DateTime.UtcNow.AddDays(-1), CompletedAt = DateTime.UtcNow, ActualInputCost = 80, ActualJobCost = 0, ActualOtherCost = 0 };
         (await browser.PostAsJsonAsync("/api/economics/runs", new RunInput(manual, new(7, 41)))).EnsureSuccessStatusCode();
         var summary = (await browser.GetFromJsonAsync<JsonObject>("/api/economics/capital"))!;
         Assert.Equal(240, summary["metrics"]![poolId.ToString()]!["committed"]!.GetValue<decimal>());
@@ -50,7 +50,7 @@ public class RunTests
     [Fact]
     public void Missing_duration_and_costs_remain_unknown_and_expected_never_overwrites_actual()
     {
-        var run = new EconomicRun { Status = "Active", ExpectedInputCost = 10, ExpectedOtherCost = 0, ExpectedRevenue = 20 };
+        var run = new EconomicRun { Status = "Active", ExpectedInputCost = 10, ExpectedJobCost = 0, ExpectedOtherCost = 0, ExpectedRevenue = 20 };
         var metrics = RunMetrics.Calculate(run); Assert.Equal(10, metrics.ExpectedProfit); Assert.Null(metrics.ActualProfit); Assert.Null(metrics.SlotDays); Assert.Equal(10, metrics.Committed);
         run.ExpectedOtherCost = null; Assert.Null(RunMetrics.Calculate(run).Committed);
         run.Status = "Completed"; Assert.Equal(0, RunMetrics.Calculate(run).Committed);

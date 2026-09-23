@@ -5,13 +5,14 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { DecimalPipe } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { forkJoin, of } from 'rxjs';
+import { MetricPipe } from './economic-reporting';
 import { Run, RunView } from './runs';
 import { IndustryJob, IndustryJobs } from './industry-jobs';
 import { Pool } from './capital';
 import { Track, requestError } from './tracks/track-api';
 interface RunOptions {types:string[];purposes:string[];statuses:string[];verdicts:string[];}
-type MoneyKey='expectedInputCost'|'expectedOtherCost'|'expectedRevenue'|'actualInputCost'|'actualOtherCost'|'actualRevenue';
-@Component({selector:'app-run-detail',imports:[FormsModule,RouterLink,DecimalPipe,MatButtonModule,IndustryJobs],template:`
+type MoneyKey='expectedInputCost'|'expectedJobCost'|'expectedOtherCost'|'expectedRevenue'|'actualInputCost'|'actualJobCost'|'actualOtherCost'|'actualRevenue';
+@Component({selector:'app-run-detail',imports:[FormsModule,RouterLink,DecimalPipe,MetricPipe,MatButtonModule,IndustryJobs],template:`
   <a routerLink="/runs" class="back-link">← Economic Runs</a><p class="eyebrow">ECONOMICS / RUN</p><h1>{{id ? draft.name : 'Create Run'}}</h1>
   @if(error()){<p class="error" role="alert">{{error()}} <button mat-button (click)="load()">Reload</button></p>}
   @if(ready()){
@@ -28,11 +29,13 @@ type MoneyKey='expectedInputCost'|'expectedOtherCost'|'expectedRevenue'|'actualI
       <p class="muted">Blank financial fields mean unknown. Enter 0 only when the amount is known to be zero. An R&D or internal-supply Run can complete without sales revenue.</p>
       <fieldset><legend>Expected results</legend><div class="form-row">@for(field of expected;track field.key){<label>{{field.label}}<input [name]="field.key" type="number" min="0" step="0.01" [(ngModel)]="draft[field.key]"></label>}</div></fieldset>
       <fieldset><legend>Actual results</legend><div class="form-row">@for(field of actual;track field.key){<label>{{field.label}}<input [name]="field.key" type="number" min="0" step="0.01" [(ngModel)]="draft[field.key]"></label>}</div></fieldset>
+      <label>Capital tied up (ISK)<input name="capitalTiedUp" type="number" min="0" step="0.01" [(ngModel)]="draft.capitalTiedUp" aria-describedby="capital-help"></label>
+      <p id="capital-help" class="muted">Capital tied up in this product test, used for capital efficiency. Record it independently of costs and pool commitments.</p>
       <details><summary>Duration and efficiency</summary><div class="form-row"><label>Manufacturing duration (hours)<input name="hours" type="number" min="0" step="any" [(ngModel)]="draft.manufacturingHours"></label><label>Concurrent slots<input name="slots" type="number" min="1" max="1000" step="1" [(ngModel)]="draft.concurrentSlots"></label><label>Time to sell (days)<input name="sellDays" type="number" min="0" step="any" [(ngModel)]="draft.timeToSellDays"></label></div></details>
       <label>Run notes<textarea name="notes" rows="6" maxlength="20000" [(ngModel)]="draft.notes"></textarea></label>
       <button mat-flat-button [disabled]="form.invalid || busy()">{{id?'Save Run':'Create Run'}}</button>@if(saved()){<p role="status">Run saved.</p>}
     </form>
-    @if(view();as view){<section class="panel"><h2>Saved financial results</h2><p class="muted">Calculated by the backend from the saved inputs. Active/Selling Runs commit complete actual costs where available, otherwise complete expected costs.</p><div class="table-wrap"><table><thead><tr><th>Metric</th><th>Value</th></tr></thead><tbody>@for(metric of metrics;track metric.key){<tr><td>{{metric.label}}</td><td>{{view.financials[metric.key]===null?'Unknown':(view.financials[metric.key] | number:'1.2-2')}}</td></tr>}</tbody></table></div></section>}
+    @if(view();as view){<section class="panel"><h2>Saved financial results</h2><p class="muted">Calculated by the backend from the saved inputs. Active/Selling Runs commit complete actual costs where available, otherwise complete expected costs. Capital efficiency is a direct ratio, not an ISK amount or percentage.</p><div class="table-wrap"><table><thead><tr><th>Metric</th><th>Value</th></tr></thead><tbody>@for(metric of metrics;track metric.key){<tr><td>{{metric.label}}</td><td>{{metric.key==='capitalEfficiency'?(view.financials[metric.key]|metric:'ISK/slot-day/ISK'):(view.financials[metric.key]===null?'Unknown':(view.financials[metric.key] | number:'1.2-2'))}}</td></tr>}</tbody></table></div></section>}
     @if(id){<app-industry-jobs [runId]="id" />}
   }
 `})
@@ -40,10 +43,10 @@ export class RunDetail {
   private readonly http=inject(HttpClient);private readonly route=inject(ActivatedRoute);private readonly router=inject(Router);
   readonly id=this.route.snapshot.paramMap.get('id');readonly error=signal('');readonly ready=signal(false);readonly busy=signal(false);readonly saved=signal(false);readonly view=signal<RunView|null>(null);readonly sourceJob=signal<IndustryJob|null>(null);
   readonly tracks=signal<Track[]>([]);readonly pools=signal<Pool[]>([]);readonly playbooks=signal<{id:string;name:string}[]>([]);readonly options=signal<RunOptions>({types:[],purposes:[],statuses:[],verdicts:[]});
-  draft:Run={id:'',name:'',trackId:'',capitalPoolId:null,playbookId:null,runType:'Other',purpose:'Commercial',status:'Planning',productTypeId:null,productName:null,quantity:null,startedAt:new Date().toISOString(),completedAt:null,expectedInputCost:null,expectedOtherCost:null,expectedRevenue:null,actualInputCost:null,actualOtherCost:null,actualRevenue:null,manufacturingHours:null,concurrentSlots:null,timeToSellDays:null,verdict:'No Verdict',notes:'',revision:0};
-  readonly expected:{key:MoneyKey;label:string}[]=[{key:'expectedInputCost',label:'Expected input cost (ISK)'},{key:'expectedOtherCost',label:'Expected other cost (ISK)'},{key:'expectedRevenue',label:'Expected revenue (ISK)'}];
-  readonly actual:{key:MoneyKey;label:string}[]=[{key:'actualInputCost',label:'Actual input cost (ISK)'},{key:'actualOtherCost',label:'Actual other cost (ISK)'},{key:'actualRevenue',label:'Actual revenue (ISK)'}];
-  readonly metrics=[{key:'expectedProfit',label:'Expected profit (ISK)'},{key:'actualProfit',label:'Actual profit (ISK)'},{key:'margin',label:'Actual margin (%)'},{key:'slotDays',label:'Slot days'},{key:'profitPerSlotDay',label:'Profit per slot-day (ISK)'},{key:'capitalTurnDays',label:'Capital turn time (days)'},{key:'timeToSellDays',label:'Time to sell (days)'},{key:'committed',label:'Committed capital (ISK)'}];
+  draft:Run={id:'',name:'',trackId:'',capitalPoolId:null,playbookId:null,runType:'Other',purpose:'Commercial',status:'Planning',productTypeId:null,productName:null,quantity:null,startedAt:new Date().toISOString(),completedAt:null,expectedInputCost:null,expectedJobCost:null,expectedOtherCost:null,expectedRevenue:null,actualInputCost:null,actualJobCost:null,actualOtherCost:null,actualRevenue:null,capitalTiedUp:null,manufacturingHours:null,concurrentSlots:null,timeToSellDays:null,verdict:'No Verdict',notes:'',revision:0};
+  readonly expected:{key:MoneyKey;label:string}[]=[{key:'expectedInputCost',label:'Expected input cost (ISK)'},{key:'expectedJobCost',label:'Expected job cost (ISK)'},{key:'expectedOtherCost',label:'Expected other cost (ISK)'},{key:'expectedRevenue',label:'Expected revenue (ISK)'}];
+  readonly actual:{key:MoneyKey;label:string}[]=[{key:'actualInputCost',label:'Actual input cost (ISK)'},{key:'actualJobCost',label:'Actual job cost (ISK)'},{key:'actualOtherCost',label:'Actual other cost (ISK)'},{key:'actualRevenue',label:'Actual revenue (ISK)'}];
+  readonly metrics=[{key:'expectedCost',label:'Expected cost (ISK)'},{key:'actualCost',label:'Actual cost (ISK)'},{key:'capitalEfficiency',label:'Profit / Slot-Day / ISK Tied Up'},{key:'expectedProfit',label:'Expected profit (ISK)'},{key:'actualProfit',label:'Actual profit (ISK)'},{key:'margin',label:'Actual margin (%)'},{key:'slotDays',label:'Slot days'},{key:'profitPerSlotDay',label:'Profit per slot-day (ISK)'},{key:'capitalTurnDays',label:'Capital turn time (days)'},{key:'timeToSellDays',label:'Time to sell (days)'},{key:'committed',label:'Committed capital (ISK)'}];
   constructor(){this.load();}
   date(key:'startedAt'|'completedAt',value:string){if(key==='startedAt')this.draft.startedAt=value?`${value}:00Z`:'';else this.draft.completedAt=value?`${value}:00Z`:null;}
   selectTrack(){this.draft.capitalPoolId=this.tracks().find(x=>x.id===this.draft.trackId)?.defaultCapitalPoolId??null;}

@@ -23,7 +23,7 @@ public static class EconomicReporting
  public static readonly MetricDefinition[] Catalog=[
   new("profit30d","30-day realised profit","ISK"),new("lifetimeProfit","Lifetime realised profit","ISK"),new("expectedProfit","Expected profit (open Runs)","ISK"),
   new("capitalAllocated","Default pool allocation","ISK"),new("capitalCommitted","Track committed capital","ISK"),new("capitalAvailable","Default pool available","ISK"),
-  new("slotDays","Completed Run slot-days","days"),new("profitPerSlotDay","Profit per slot-day","ISK/day"),new("capitalTurnDays","Average capital turn time","days"),new("timeToSellDays","Average time to sell","days"),
+  new("slotDays","Completed Run slot-days","days"),new("profitPerSlotDay","Profit per slot-day","ISK/day"),new("capitalEfficiency","Profit / Slot-Day / ISK Tied Up","ISK/slot-day/ISK"),new("capitalTurnDays","Average capital turn time","days"),new("timeToSellDays","Average time to sell","days"),
   new("rdSpend","Recorded R&D spend","ISK"),new("completedRuns","Completed Runs","count"),new("activeRuns","Active Runs","count"),new("internalisation","Internalisation","%")];
  public static async Task<ProgrammeSummary> Capture(GhostWatchDbContext db,DateTime now,CancellationToken ct)
  {
@@ -42,7 +42,7 @@ public static class EconomicReporting
     ["profit30d"]=Profit(completed.Where(x=>x.CompletedAt>=now.AddDays(-30)&&x.CompletedAt<=now)),["lifetimeProfit"]=lifetime,
     ["expectedProfit"]=SumOrUnknown(matching.Where(x=>x.Status is "Planning" or "Active" or "Selling").Select(x=>RunMetrics.Calculate(x).ExpectedProfit)),
     ["capitalAllocated"]=pool?.Allocated,["capitalCommitted"]=FinancialMath.CompleteSum(matching.Select(x=>RunMetrics.Calculate(x).Committed)),["capitalAvailable"]=pool?.Available,
-    ["slotDays"]=days,["profitPerSlotDay"]=FinancialMath.PerSlotDay(lifetime,days),["capitalTurnDays"]=Average(completedMetrics.Select(x=>x.CapitalTurnDays)),["timeToSellDays"]=Average(completedMetrics.Select(x=>x.TimeToSellDays)),
+    ["capitalEfficiency"]=RunMetrics.AggregateCapitalEfficiency(completed),["slotDays"]=days,["profitPerSlotDay"]=FinancialMath.PerSlotDay(lifetime,days),["capitalTurnDays"]=Average(completedMetrics.Select(x=>x.CapitalTurnDays)),["timeToSellDays"]=Average(completedMetrics.Select(x=>x.TimeToSellDays)),
     ["rdSpend"]=SumOrUnknown(matching.Where(x=>x.Purpose=="R&D").Select(x=>RunMetrics.Calculate(x).ActualCost)),["completedRuns"]=completed.Length,["activeRuns"]=matching.Count(x=>x.Status is "Active" or "Selling"),
     ["internalisation"]=strategies.TryGetValue(track.Id,out var strategy)?PlanningEndpoints.Internalisation(JsonSerializer.Deserialize<ProductionStage[]>(strategy.StagesJson)!):null
    };

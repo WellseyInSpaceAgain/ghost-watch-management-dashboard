@@ -22,11 +22,14 @@ public sealed class EconomicRun
     public DateTime StartedAt { get; set; } = DateTime.UtcNow;
     public DateTime? CompletedAt { get; set; }
     public decimal? ExpectedInputCost { get; set; }
+    public decimal? ExpectedJobCost { get; set; }
     public decimal? ExpectedOtherCost { get; set; }
     public decimal? ExpectedRevenue { get; set; }
     public decimal? ActualInputCost { get; set; }
+    public decimal? ActualJobCost { get; set; }
     public decimal? ActualOtherCost { get; set; }
     public decimal? ActualRevenue { get; set; }
+    public decimal? CapitalTiedUp { get; set; }
     public decimal? ManufacturingHours { get; set; }
     public int? ConcurrentSlots { get; set; }
     public decimal? TimeToSellDays { get; set; }

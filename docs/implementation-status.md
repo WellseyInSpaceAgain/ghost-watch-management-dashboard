@@ -81,3 +81,25 @@ The original scope exclusions remain in force: no live pricing/scanning, SDE pro
 - `python3 scripts/verify-container.py`: final isolated host Podman Compose image/startup/deep-link/migration/persistence check passes.
 - Local Git identity matches the requested user/email; tracked-file review found no runtime/credential artifacts. Existing `.env` was not read.
 - [Final report](v1-report.md) covers all 26 requested report topics. [Financial semantics](financial-metrics.md) and [chart contract](chart-configuration.md) document the implemented calculations and supported configuration.
+
+## Economic Plan v1 fidelity
+
+The follow-up implements the two remaining code-level requirements from `v1-economic-plan.md`. The original acceptance criteria, prior verification results, exclusions and external/live verification notes above are preserved.
+
+| Requirement | State | Evidence |
+|---|---|---|
+| **Explicit Economic Run Job Cost and Capital Tied Up** | PASS | Nullable Expected Job Cost, Actual Job Cost and Capital Tied Up persist through API create/update/read/clear and Run form save/reload. Migration `20260923172146_AddRunJobCostAndCapitalEfficiency` adds nullable columns without defaults/backfill; isolated legacy upgrade tests preserve every existing financial input and snapshot JSON. Expected/actual total cost includes the separate Job Cost, with unknown propagation and explicit zero supported. Shared commitment, pool, realised/30-day, lifetime and R&D calculations use revised totals; Capital Tied Up remains independent. Backend, real browser and isolated container verification pass. |
+| **Profit per Slot-Day per ISK of Capital Tied Up** | PASS | Central `FinancialMath`/`RunMetrics` calculation requires known actual profit, positive slot-days and explicit positive Capital Tied Up. Tests cover every missing/invalid denominator, zero/loss profits and capital independence. Saved Run financials, reporting, configurable Run charts and selected Track KPIs expose the ratio with appropriate precision/units. Track aggregation is `sum(realised profit) / sum(slot-days × explicit capital tied up)` over all Completed/Evaluated Runs; any incomplete Run makes it unknown. Weighted-cohort, chart, snapshot and browser tests pass. No Track-KPI architectural limitation remains. |
+
+Follow-up verification (2026-09-23):
+
+- `dotnet build --no-restore`: PASS, zero warnings/errors.
+- `dotnet test --no-restore`: PASS, 104 tests.
+- Frontend `npm run build`: PASS, production bundle.
+- Frontend `npx playwright test`: PASS, all 25 browser workflows; the two affected accounting/reporting workflows also passed after the final weighted-aggregation adjustment.
+- EF pending-model-change check: PASS; no pending changes. Generated upgrade SQL is additive only. Integration tests upgrade a pre-feature database without fabricated inputs and verify applied migration/model consistency.
+- Snapshot compatibility: PASS; version-1 payloads/API reads/monthly identity stay unchanged, absent historical ratio values remain unknown, and version-2 captures store revised totals/KPIs immutably.
+- `python3 scripts/verify-container.py`: PASS, isolated production image/startup/migrations/deep links/non-root/persistence smoke test.
+- No live deployment/database changes or fresh live EVE verification were performed. Previous external verification notes remain separate from this completed repository follow-up.
+
+Exact financial formulas, aggregation and migration implications are documented in [Financial metrics](financial-metrics.md); chart measure/format examples are in [Chart configuration](chart-configuration.md).

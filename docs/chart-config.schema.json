@@ -173,7 +173,8 @@
               "number",
               "percent",
               "days",
-              "count"
+              "count",
+              "ratio"
             ]
           }
         }

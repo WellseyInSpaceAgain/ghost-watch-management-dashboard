@@ -1,8 +1,9 @@
+import {ratioValue} from '../economic-reporting';
 import {Component,ElementRef,afterRenderEffect,input,viewChild} from '@angular/core';
 import {Chart,BarController,BarElement,LineController,LineElement,PointElement,CategoryScale,LinearScale,PieController,DoughnutController,ArcElement,Tooltip,Legend} from 'chart.js';
 Chart.register(BarController,BarElement,LineController,LineElement,PointElement,CategoryScale,LinearScale,PieController,DoughnutController,ArcElement,Tooltip,Legend);
 export interface ChartData {title:string;description:string|null;type:'line'|'bar'|'stackedBar'|'pie'|'donut'|'kpi';xLabel:string|null;labels:string[];series:{label:string;format:string;values:(number|null)[]}[];rowCount:number;notice:string|null;}
-export function chartValue(value:number|null|undefined,format:string):string {if(value==null)return 'Unknown';const text=new Intl.NumberFormat('en-GB',{maximumFractionDigits:2}).format(value);return text+(({isk:' ISK',percent:'%',days:' days'} as Record<string,string>)[format]??'');}
+export function chartValue(value:number|null|undefined,format:string):string {if(value==null)return 'Unknown';if(format==='ratio')return ratioValue(value)+' ISK/slot-day/ISK';const text=new Intl.NumberFormat('en-GB',{maximumFractionDigits:2}).format(value);return text+(({isk:' ISK',percent:'%',days:' days'} as Record<string,string>)[format]??'');}
 @Component({selector:'app-chart-renderer',template:`
 <h3>{{data().title}}</h3>@if(data().description){<p class="muted">{{data().description}}</p>}
 @if(data().notice){<p class="notice">{{data().notice}}</p>}

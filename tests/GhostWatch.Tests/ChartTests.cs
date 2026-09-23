@@ -24,7 +24,7 @@ public class ChartTests
   await using var app=new TestApplication();using var browser=app.CreateClient();Guid trackId;
   using(var scope=app.Services.CreateScope()){
    var db=scope.ServiceProvider.GetRequiredService<GhostWatchDbContext>();var track=new EconomyTrack{Name="Workshop"};trackId=track.Id;db.EconomyTracks.Add(track);
-   db.EconomicRuns.AddRange(new EconomicRun{Name="First",TrackId=trackId,ProductName="Shield",ActualInputCost=50,ActualOtherCost=0,ActualRevenue=100,StartedAt=DateTime.UtcNow.AddDays(-2)},new EconomicRun{Name="Second",TrackId=trackId,ProductName="Shield",ActualInputCost=10,ActualOtherCost=0,ActualRevenue=40,StartedAt=DateTime.UtcNow.AddDays(-1)},new EconomicRun{Name="Unknown",TrackId=trackId,ProductName="Hull"});await db.SaveChangesAsync();
+   db.EconomicRuns.AddRange(new EconomicRun{Name="First",TrackId=trackId,ProductName="Shield",ActualInputCost=50,ActualJobCost=0,ActualOtherCost=0,ActualRevenue=100,StartedAt=DateTime.UtcNow.AddDays(-2)},new EconomicRun{Name="Second",TrackId=trackId,ProductName="Shield",ActualInputCost=10,ActualJobCost=0,ActualOtherCost=0,ActualRevenue=40,StartedAt=DateTime.UtcNow.AddDays(-1)},new EconomicRun{Name="Unknown",TrackId=trackId,ProductName="Hull"});await db.SaveChangesAsync();
   }
   foreach(var (aggregation,expected) in new[]{("sum",80m),("average",40m),("min",30m),("max",50m),("count",2m),("latest",30m)}){
    var response=await browser.PostAsJsonAsync("/api/economics/charts/preview",new PreviewInput(Config(aggregation:aggregation,filters:new(Product:"Shield"))));response.EnsureSuccessStatusCode();var data=(await response.Content.ReadFromJsonAsync<ChartData>())!;Assert.Equal(expected,data.Series[0].Values[0]);Assert.Equal("Shield",data.Labels[0]);

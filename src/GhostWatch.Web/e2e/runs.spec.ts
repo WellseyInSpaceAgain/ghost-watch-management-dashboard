@@ -9,6 +9,7 @@ test('manual Run keeps estimates distinct and supports R&D completion without re
   await page.getByRole('combobox',{name:'Run type',exact:true}).selectOption('R&D');
   await page.getByRole('combobox',{name:'Purpose',exact:true}).selectOption('R&D');
   await page.getByLabel('Expected input cost (ISK)',{exact:true}).fill('100');
+  await page.getByLabel('Expected job cost (ISK)',{exact:true}).fill('0');
   await page.getByLabel('Expected other cost (ISK)',{exact:true}).fill('0');
   await page.getByLabel('Expected revenue (ISK)',{exact:true}).fill('150');
   await page.getByLabel('Run notes',{exact:true}).fill('Preserve this experiment');

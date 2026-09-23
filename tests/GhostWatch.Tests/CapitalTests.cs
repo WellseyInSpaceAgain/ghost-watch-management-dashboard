@@ -45,8 +45,8 @@ public class CapitalTests
     [Fact]
     public void Financial_unknowns_do_not_become_zero()
     {
-        Assert.Null(FinancialMath.Profit(10, null, 20));
-        Assert.Equal(7, FinancialMath.Profit(10, 3, 20));
+        Assert.Null(FinancialMath.Profit(10, 0, null, 20));
+        Assert.Equal(7, FinancialMath.Profit(10, 0, 3, 20));
         Assert.Null(FinancialMath.CompleteSum([10, null]));
         Assert.Equal(0, FinancialMath.CompleteSum([]));
         Assert.Null(FinancialMath.Coverage(100, 0));

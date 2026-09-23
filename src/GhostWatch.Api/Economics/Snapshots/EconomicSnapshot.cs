@@ -11,7 +11,7 @@ public sealed class EconomicSnapshot
  public string? MonthKey {get;set;}
  public string? Name {get;set;}
  public string? Note {get;set;}
- public int SchemaVersion {get;set;}=1;
+ public int SchemaVersion {get;set;}=2;
  public string ValuesJson {get;set;}="{}";
 }
 public sealed class SnapshotStore(GhostWatchDbContext db)

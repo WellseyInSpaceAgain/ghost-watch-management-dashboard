@@ -101,7 +101,7 @@ public static class RunEndpoints
         if (!await db.EconomyTracks.AnyAsync(x => x.Id == run.TrackId, ct)) return "Choose an existing Track.";
         if (run.PlaybookId is { } book && !await db.Playbooks.AnyAsync(x => x.Id == book, ct)) return "Choose an existing Playbook.";
         if (run.CapitalPoolId is { } pool && !await db.CapitalPools.AnyAsync(x => x.Id == pool, ct)) return "Choose an existing Capital Pool.";
-        if (new[] { run.Quantity, run.ExpectedInputCost, run.ExpectedOtherCost, run.ExpectedRevenue, run.ActualInputCost, run.ActualOtherCost, run.ActualRevenue, run.ManufacturingHours, run.TimeToSellDays }.Any(x => x is < 0 or > 1000000000000000m) || run.ConcurrentSlots is < 1 or > 1000 || run.ProductTypeId is <= 0) return "Amounts and durations must be nonnegative, with positive type IDs and slot counts.";
+        if (new[] { run.Quantity, run.ExpectedInputCost, run.ExpectedJobCost, run.ExpectedOtherCost, run.ExpectedRevenue, run.ActualInputCost, run.ActualJobCost, run.ActualOtherCost, run.ActualRevenue, run.CapitalTiedUp, run.ManufacturingHours, run.TimeToSellDays }.Any(x => x is < 0 or > 1000000000000000m) || run.ConcurrentSlots is < 1 or > 1000 || run.ProductTypeId is <= 0) return "Amounts and durations must be nonnegative, with positive type IDs and slot counts.";
         if (run.StartedAt == default || run.CompletedAt < run.StartedAt) return "Completion cannot precede the start date.";
         if (RunMetrics.Realised(run) && run.CompletedAt is null) return "Completed/evaluated Runs need a completion date. Financial results can remain unknown.";
         return null;

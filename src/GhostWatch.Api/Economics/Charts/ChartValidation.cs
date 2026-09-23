@@ -6,10 +6,10 @@ public static class ChartValidation
  public static readonly JsonSerializerOptions JsonOptions=new(JsonSerializerDefaults.Web){UnmappedMemberHandling=System.Text.Json.Serialization.JsonUnmappedMemberHandling.Disallow,MaxDepth=16};
  public static readonly string[] Types=["line","bar","stackedBar","pie","donut","kpi"];
  public static readonly string[] Aggregations=["sum","average","min","max","count","latest"];
- public static readonly string[] Formats=["isk","number","percent","days","count"];
+ public static readonly string[] Formats=["isk","number","percent","days","count","ratio"];
  public static readonly string[] ProgrammeMeasures=["coreCapital","treasury","rdCapital","expansionCapital","profit30d","replacementValue","replacementCoverage","activeRuns","completedRuns","allocated","committed","liquid","marketBuyCommitments","sellOrderListedValue"];
  public static readonly Dictionary<string,ChartSource> Sources=new(){
-  ["runs"]=new(["all","name","productName","trackName","status","runType","capitalPoolName","date","month"],["expectedCost","expectedRevenue","expectedProfit","actualCost","actualRevenue","actualProfit","margin","slotDays","profitPerSlotDay","capitalTurnDays","timeToSellDays","committed","quantity"],["trackId","status","runType","capitalPoolId","product","from","to"]),
+  ["runs"]=new(["all","name","productName","trackName","status","runType","capitalPoolName","date","month"],["expectedCost","expectedRevenue","expectedProfit","actualCost","actualRevenue","actualProfit","margin","slotDays","profitPerSlotDay","capitalEfficiency","capitalTurnDays","timeToSellDays","committed","quantity"],["trackId","status","runType","capitalPoolId","product","from","to"]),
   ["tracks"]=new(["all","name","status","purpose"],EconomicReporting.Catalog.Select(x=>x.Key).ToArray(),["trackId","status"]),
   ["capitalPools"]=new(["all","name","role"],["allocated","committed","available","lifetimeProfit"],["capitalPoolId"]),
   ["snapshots"]=new(["all","date","month","name","trigger"],ProgrammeMeasures.Concat(EconomicReporting.Catalog.Select(x=>x.Key)).Distinct().ToArray(),["trackId","from","to"]),

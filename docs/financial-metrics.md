@@ -6,11 +6,12 @@ Manual estimates, actual results and EVE facts are separate. Blank costs/revenue
 
 | Metric | Calculation |
 |---|---|
-| Cost | Input cost + other cost, independently for expected and actual |
+| Cost | Input cost + job cost + other cost, independently for expected and actual |
 | Profit | Revenue − cost, independently for expected and actual |
 | Margin | Actual profit / actual revenue × 100; unknown for nonpositive revenue |
 | Slot-days | Manufacturing hours × concurrent slots / 24 |
 | Profit per slot-day | Actual profit / slot-days; unknown for zero or missing duration |
+| Capital efficiency | Actual profit / slot-days / explicitly recorded Capital Tied Up; a ratio |
 | Capital turn time | Completion − start, in days |
 | Time to sell | User-recorded days |
 | Run commitment | Active/Selling: complete actual cost, otherwise complete expected cost; unknown if neither is complete. Other statuses: zero |
@@ -35,3 +36,33 @@ Needs Attention rules are deterministic: unassociated retained industry jobs; co
 Manual snapshots accept an optional name and note. Automatic snapshots use UTC calendar months, create the current month at application startup when absent, and check hourly thereafter. A unique nullable month key prevents duplicate automatic captures; manual snapshots have no month key. Missing historical months are not backfilled.
 
 A transaction reads local programme state and persists versioned JSON values, including names, programme/pool/Track metrics, selected KPIs, factual completeness/staleness, replacement estimates/coverage and Objective/Gate state. History reads these stored values. There are no snapshot editing or deletion endpoints. Later renames, allocations, refreshed wallets or Run edits cannot change an earlier snapshot.
+
+## Run accounting and capital efficiency
+
+`Expected Cost = Expected Input Cost + Expected Job Cost + Expected Other Cost`
+
+`Actual Cost = Actual Input Cost + Actual Job Cost + Actual Other Cost`
+
+Expected/actual profit is the corresponding revenue minus this total. Job Cost is distinct from Other Cost; all three components are required. Blank Job Cost makes the corresponding cost/profit unknown, just like blank Input Cost or Other Cost. Explicit zero is accepted. Historical Runs receive null Expected Job Cost, Actual Job Cost and Capital Tied Up without inferring values or moving Other Cost. Their current calculated totals may therefore become unknown until the missing Job Cost is recorded; stored snapshot results are unchanged.
+
+Capital Tied Up is explicitly recorded Run data for product-test capital-efficiency comparison. It is independent of total Run cost, Capital Pool allocation and Run commitment, even if a user records equivalent amounts. It has no inferred default and does not affect commitments. Active/Selling commitments continue to use complete actual cost, otherwise complete expected cost, now including Job Cost. Pool availability, lifetime spend/profit, realised/30-day profit and recorded R&D spend consequently include Job Cost through the same central calculations. R&D may still complete without revenue and retain an unknown profit.
+
+`Capital Efficiency = Actual Profit / Slot Days / Capital Tied Up`
+
+Equivalently: `Capital Efficiency = Profit Per Slot-Day / Capital Tied Up`.
+
+The result is unknown when Actual Profit is unknown, Slot Days is missing or nonpositive (including missing/invalid hours or slots), or Capital Tied Up is missing or nonpositive. The API accepts null or nonnegative finite decimal amounts within the existing financial bound (10^15); it rejects negative, nonnumeric and out-of-range new inputs. Zero capital can be recorded but produces unknown efficiency. Zero profit produces zero efficiency; losses produce a negative ratio when both denominators are valid. No cost, commitment or pool value substitutes for Capital Tied Up.
+
+The label **Profit / Slot-Day / ISK Tied Up** denotes a direct capital-efficiency ratio, not an ISK amount or a percentage. For example, `0.00025` means 0.00025 ISK profit per slot-day per ISK tied up. Ratio displays use up to eight significant digits so small values remain visible; Angular formats the API result without calculating it.
+
+### Track aggregation
+
+The selected Track KPI uses all Completed/Evaluated Runs, matching the existing lifetime realised-profit and completed-slot-day cohort:
+
+`Track Capital Efficiency = sum(Actual Profit) / sum(Slot Days × Capital Tied Up)`
+
+This is the weighted mean of Run efficiencies with each Run weighted by its capital × slot-days exposure. It is not an arithmetic average, nor total profit divided by total days and then total capital. The whole value is unknown for an empty cohort or if any included Run has an unknown/invalid efficiency input. Incomplete R&D Runs are not silently excluded. Planning/Active/Selling/Cancelled Runs are outside this realised cohort. KPI selection, Track reporting, Track chart measures and Track snapshot charts use this centrally calculated value.
+
+### Snapshot compatibility
+
+New captures use schema version 2, identifying the revised Job Cost totals and additional Track capital-efficiency metric. Version 1 and version 2 both read their stored JSON dictionaries directly. No migration edits snapshot payloads or versions, and reads never recalculate historical values. A Track capital-efficiency chart over a version 1 snapshot returns unknown for the absent key. Automatic monthly capture still returns an existing month's snapshot unchanged, even when its version is 1.

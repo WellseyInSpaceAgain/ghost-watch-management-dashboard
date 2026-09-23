@@ -112,7 +112,7 @@ public class EsiTests
         var wallet = await db.EveSections.SingleAsync(x => x.Name == "wallet");
         var successAt = wallet.UpdatedAt;
         Assert.Equal("123456.78", wallet.Json);
-        var localRun = new GhostWatch.Api.Economics.Runs.EconomicRun { Name = "Preserved batch", TrackId = (await db.EconomyTracks.SingleAsync()).Id, Notes = "Manual run notes", ExpectedInputCost = 77 };
+        var localRun = new GhostWatch.Api.Economics.Runs.EconomicRun { Name = "Preserved batch", TrackId = (await db.EconomyTracks.SingleAsync()).Id, Notes = "Manual run notes", ExpectedInputCost = 77, ExpectedJobCost = 3, ActualJobCost = 4, CapitalTiedUp = 120 };
         db.EconomicRuns.Add(localRun);
         db.RunJobs.Add(new() { CharacterId = 7, JobId = 42, RunId = localRun.Id });
         await db.SaveChangesAsync();
