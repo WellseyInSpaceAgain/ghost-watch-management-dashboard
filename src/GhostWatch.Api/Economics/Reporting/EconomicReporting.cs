@@ -16,7 +16,10 @@ public sealed record TrackSummary(Guid Id,string Name,string Status,string Purpo
 public sealed record PoolSummary(Guid Id,string Name,string Role,decimal Allocated,decimal? Committed,decimal? Available,decimal? LifetimeProfit,bool Archived);
 public sealed record FactualTotals(decimal? Liquid,decimal KnownLiquid,int WalletCount,int CharacterCount,bool WalletsStale,decimal? MarketBuyCommitments,decimal? SellOrderListedValue,bool OrdersStale);
 public sealed record ProgrammeSummary(DateTime Timestamp,Dictionary<string,decimal?> Metrics,FactualTotals Facts,List<PoolSummary> Pools,List<TrackSummary> Tracks,Guid? ReplacementPackageId,string? ReplacementPackageName,List<Objective> Objectives);
-public sealed record AttentionItem(string Rule,string Message,string Path);
+public sealed record AttentionItem(string Rule,string Message,string Path,string? SubjectType=null,string? SubjectId=null)
+{
+ public string Key => $"{Rule}:{SubjectType ?? "programme"}:{SubjectId ?? "all"}";
+}
 public sealed record ActivityItem(string Name,string Kind,string Path,DateTime Timestamp);
 public static class EconomicReporting
 {
@@ -76,13 +79,13 @@ public static class EconomicReporting
   if(unassociated>0)items.Add(new("unassociated-jobs",$"{unassociated} ESI industry jobs are not associated with a Run.","/industry-jobs"));
   var runs=await db.EconomicRuns.AsNoTracking().OrderBy(x=>x.Name).ToListAsync(ct);
   foreach(var run in runs.Where(RunMetrics.Realised)){
-   if(run.Purpose=="Commercial"&&run.ActualRevenue==null)items.Add(new("missing-sales",$"{run.Name} completed but has no actual sales result.",$"/runs/{run.Id}"));
-   if(run.Verdict=="No Verdict")items.Add(new("unevaluated-run",$"{run.Name} completed without a verdict.",$"/runs/{run.Id}"));
+   if(run.Purpose=="Commercial"&&run.ActualRevenue==null)items.Add(new("missing-sales",$"{run.Name} completed but has no actual sales result.",$"/runs/{run.Id}","run",run.Id.ToString()));
+   if(run.Verdict=="No Verdict")items.Add(new("unevaluated-run",$"{run.Name} completed without a verdict.",$"/runs/{run.Id}","run",run.Id.ToString()));
   }
-  foreach(var pool in summary.Pools.Where(x=>!x.Archived&&x.Committed>0&&(x.Allocated==0||x.Committed>=x.Allocated*.9m)))items.Add(new("pool-utilisation",$"{pool.Name} has committed {(pool.Allocated==0?"more than its allocation":$"{pool.Committed/pool.Allocated:P0} of its allocation")}.","/capital"));
+  foreach(var pool in summary.Pools.Where(x=>!x.Archived&&x.Committed>0&&(x.Allocated==0||x.Committed>=x.Allocated*.9m)))items.Add(new("pool-utilisation",$"{pool.Name} has committed {(pool.Allocated==0?"more than its allocation":$"{pool.Committed/pool.Allocated:P0} of its allocation")}.","/capital","pool",pool.Id.ToString()));
   foreach(var objective in summary.Objectives.Where(x=>x.Status=="Active")){
-   if(JsonSerializer.Deserialize<ChecklistItem[]>(objective.ConditionsJson)!.Any(x=>!x.Done))items.Add(new("incomplete-checklist",$"{objective.Name} has incomplete checklist conditions.",$"/objectives?edit={objective.Id}"));
-   if(objective.TargetDate<summary.Timestamp)items.Add(new("overdue-objective",$"{objective.Name} is past its target date.",$"/objectives?edit={objective.Id}"));
+   if(JsonSerializer.Deserialize<ChecklistItem[]>(objective.ConditionsJson)!.Any(x=>!x.Done))items.Add(new("incomplete-checklist",$"{objective.Name} has incomplete checklist conditions.",$"/objectives?edit={objective.Id}","objective",objective.Id.ToString()));
+   if(objective.TargetDate<summary.Timestamp)items.Add(new("overdue-objective",$"{objective.Name} is past its target date.",$"/objectives?edit={objective.Id}","objective",objective.Id.ToString()));
   }
   if(summary.Facts.Liquid is {} liquid&&summary.Metrics["allocated"]>liquid)items.Add(new("over-allocation","Conceptual allocations exceed collected liquid wallets.","/capital"));
   if(summary.Facts.WalletsStale||summary.Facts.WalletCount<summary.Facts.CharacterCount)items.Add(new("wallet-freshness","Some character wallets are missing or stale. Refresh characters before relying on totals.","/characters"));

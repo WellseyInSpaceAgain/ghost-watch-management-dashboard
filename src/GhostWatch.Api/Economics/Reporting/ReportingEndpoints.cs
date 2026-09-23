@@ -7,15 +7,16 @@ public static class ReportingEndpoints
 {
  public static void MapReporting(this WebApplication app)
  {
+  app.MapAttention();
   app.MapGet("/api/economics/overview",async(GhostWatchDbContext db,CancellationToken ct)=>{
-   var summary=await EconomicReporting.Capture(db,DateTime.UtcNow,ct);var attention=await EconomicReporting.Attention(db,summary,ct);
+   var summary=await EconomicReporting.Capture(db,DateTime.UtcNow,ct);var findings=await AttentionAcknowledgements.Read(db,await EconomicReporting.Attention(db,summary,ct),ct);
    var runs=await db.EconomicRuns.AsNoTracking().OrderByDescending(x=>x.UpdatedAt).Take(10).ToListAsync(ct);
    var records=await db.EconomicRecords.AsNoTracking().OrderByDescending(x=>x.UpdatedAt).Take(10).ToListAsync(ct);
    var adjustments=await db.CapitalAdjustments.AsNoTracking().OrderByDescending(x=>x.CreatedAt).Take(10).ToListAsync(ct);
    var activity=runs.Select(x=>new ActivityItem(x.Name,"Run","/runs/"+x.Id,x.UpdatedAt))
     .Concat(records.Select(x=>new ActivityItem(x.Title,x.RecordType,"/records?edit="+x.Id,x.UpdatedAt)))
     .Concat(adjustments.Select(x=>new ActivityItem(x.Reason,"Capital adjustment","/capital",x.CreatedAt))).OrderByDescending(x=>x.Timestamp).Take(10);
-   return Results.Ok(new {summary,attention,activity,catalog=EconomicReporting.Catalog});
+   return Results.Ok(new {summary,attention=findings.Active,acknowledged=findings.Acknowledged,activity,catalog=EconomicReporting.Catalog});
   });
   app.MapGet("/api/economics/tracks/{id:guid}/operations",async(Guid id,GhostWatchDbContext db,CancellationToken ct)=>{
    var summary=(await EconomicReporting.Capture(db,DateTime.UtcNow,ct)).Tracks.Find(x=>x.Id==id);if(summary is null)return Results.NotFound();

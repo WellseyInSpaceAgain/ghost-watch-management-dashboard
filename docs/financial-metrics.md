@@ -31,6 +31,20 @@ Wallet and order totals require a collected section for every connected characte
 
 Needs Attention rules are deterministic: unassociated retained industry jobs; completed commercial Runs without actual revenue; completed Runs without verdicts; pool commitments at least 90% of allocation; active incomplete checklists; overdue active objectives; conceptual over-allocation; missing/stale wallets. The UI links to the record needing attention. It never changes records or takes action automatically.
 
+## Needs Attention acknowledgements
+
+Rules always calculate from current data. The dashboard separates matching, unacknowledged findings from **Show acknowledged**. **Acknowledge** persists an explicit acceptance without changing capital, Tracks, Runs, Objectives, EVE facts or any financial calculation. The acknowledged list shows the timestamp and whether the condition still matches; **Restore** removes acceptance and brings back a finding only if it currently matches.
+
+Identity is `rule:subject-type:subject-id`: Run and Objective GUIDs distinguish individual warnings, and pool utilisation uses the pool GUID even though its link is the shared capital page. Renames do not change identity. Different rules on the same entity remain independent. Over-allocation, wallet freshness and the existing aggregate unassociated-job count are programme-wide rules (`rule:programme:all`); acknowledging an aggregate accepts that programme-level condition, including changes in its count or affected characters. It does not create per-job or per-character acknowledgements.
+
+Acceptance remains until explicitly restored, including after a condition clears and later recurs. This makes it independent of dashboard polling or whether anyone observed the clear interval. Cleared/deleted-subject findings remain inspectable as **Condition no longer matches**, using their saved context without a potentially broken link. If they recur, the current generated message is shown. New entities receive new GUIDs and cannot inherit acceptance from a deleted entity with the same name. The UI explains this persistent acceptance before the action.
+
+`AttentionAcknowledgements` stores a unique stable key, rule, optional subject type/ID, UTC timestamp and saved message/link context. Human-readable text is not the identity. No note editor or arbitrary suppression rules are introduced. ESI refresh does not own or delete these rows.
+
+- `GET /api/economics/attention` returns `active` and `acknowledged` lists, with a `matches` flag for each acknowledgement. The overview returns equivalent `attention` and `acknowledged` lists alongside unchanged economic summaries.
+- `POST /api/economics/attention/acknowledgements` accepts `{ "key": "<generated finding key>" }`. It validates against currently generated findings in a transaction; missing/cleared/unsupported keys cannot create suppressions. Duplicate/stale actions return HTTP 409.
+- `DELETE /api/economics/attention/acknowledgements/{id}` restores that acceptance. Each acceptance gets a new GUID, so a stale restore cannot delete a later acknowledgement of the same warning. Already removed IDs return HTTP 409.
+
 ## Snapshot history
 
 Manual snapshots accept an optional name and note. Automatic snapshots use UTC calendar months, create the current month at application startup when absent, and check hourly thereafter. A unique nullable month key prevents duplicate automatic captures; manual snapshots have no month key. Missing historical months are not backfilled.

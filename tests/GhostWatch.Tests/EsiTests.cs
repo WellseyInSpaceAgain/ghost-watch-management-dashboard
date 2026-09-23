@@ -130,7 +130,7 @@ public class EsiTests
         db.CapitalAdjustments.Add(new() { ToPoolId = pool.Id, Amount = 500, Reason = "Initial allocation" });
         db.PlaybookRevisions.Add(new() { PlaybookId = book.Id, Version = 1, Name = book.Name, MarkdownBody = "# Original", SavedAt = DateTime.UtcNow.AddDays(-1) });
         db.KnowledgeLinks.AddRange(new() { PlaybookId = book.Id, TrackId = track.Id }, new() { RecordId = record.Id, RunId = localRun.Id });
-        db.Objectives.Add(new() { Name = "Gate", TrackId = track.Id, Type = "Gate", ManualProgress = 25, Notes = "Manual readiness" });
+        db.Objectives.Add(new() { Name = "Gate", TrackId = track.Id, Type = "Gate", ManualProgress = 25, Notes = "Manual readiness", ConditionsJson = "[{\"Label\":\"Ready\",\"Done\":false}]" });
         db.ReplacementPackages.Add(new() { Name = "Doctrine", EstimatedReplacementValue = 800, IsDefault = true });
         db.TrackStrategies.Add(new() { TrackId = track.Id, StagesJson = "[{\"Name\":\"Hull\",\"Internal\":true}]" });
         db.TrackKpiSelections.Add(new() { TrackId = track.Id, KeysJson = "[\"rdSpend\"]" });
@@ -154,9 +154,13 @@ public class EsiTests
             await Add<GhostWatch.Api.Knowledge.Playbook>(); await Add<GhostWatch.Api.Knowledge.PlaybookRevision>(); await Add<GhostWatch.Api.Knowledge.EconomicRecord>(); await Add<GhostWatch.Api.Knowledge.KnowledgeLink>();
             await Add<GhostWatch.Api.Economics.Planning.Objective>(); await Add<GhostWatch.Api.Economics.Planning.TrackStrategy>(); await Add<GhostWatch.Api.Economics.Reporting.TrackKpiSelection>();
             await Add<GhostWatch.Api.Economics.Replacement.ReplacementPackage>(); await Add<GhostWatch.Api.Economics.Snapshots.EconomicSnapshot>();
+            await Add<GhostWatch.Api.Economics.Reporting.AttentionAcknowledgement>();
             await Add<GhostWatch.Api.Economics.Charts.ChartDefinition>(); await Add<GhostWatch.Api.Economics.Charts.ChartPlacement>();
             return string.Join("\n", values);
         }
+        var attention=(await browser.GetFromJsonAsync<GhostWatch.Api.Economics.Reporting.AttentionState>("/api/economics/attention"))!;
+        // A generated finding is accepted before successful and failed factual refreshes.
+        (await browser.PostAsJsonAsync("/api/economics/attention/acknowledgements",new {key=attention.Active.First().Key})).EnsureSuccessStatusCode();
         var localState = await ManagementState();
         stage = 1;
         Assert.False(await refresh.Refresh(7, _ => { }, default));

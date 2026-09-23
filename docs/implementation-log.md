@@ -115,3 +115,50 @@
 - Final verification: `dotnet build --no-restore` passed with zero warnings/errors; `dotnet test --no-restore` passed all 104 tests; `npm run build` passed; `dotnet ef migrations has-pending-model-changes --project src/GhostWatch.Api --no-build` reports no changes. Generated upgrade SQL was reviewed for additive nullable columns only; isolated legacy migration tests report no pending migrations/model changes.
 - `python3 scripts/verify-container.py` passed the production image build, non-root runtime, UI/deep links, API, migration/startup and named-volume persistence across recreation. Only the script's temporary Compose project/volume were recreated and removed. The user's live database, running deployment and credentials were not inspected or altered; no new live EVE verification is claimed.
 - Updated the existing financial/chart documentation and canonical implementation status. Earlier log history and acceptance/verification/external notes remain intact. Both requested fidelity requirements are implemented and verified; no external blocker remains for this repository task.
+
+## Economic Plan v1 browser-audit follow-up — Needs Attention acknowledgements
+
+### Audit classification before implementation
+
+Reviewed `v1-economic-plan.md`, current status/history and financial documentation, then the minimal API/EF SQLite reporting, Angular overview, management CRUD, migrations and tests. `EconomicReporting.Attention` generated deterministic links with no persisted acceptance state. User-created Playbooks, Records, Track KPI selections and Objective checklists live in separate database tables; there is no Economic Plan seed/import or name-based canonical record configuration in the repository.
+
+| Finding | Classification | Repository work / remaining live correction |
+|---|---|---|
+| 1. T2 Playbook and monthly-review Record say capital efficiency needs manual calculation | Live database/document configuration | No equivalent stale manual-calculation claim was found in repository documentation. Clarified the plan's native `Capital Efficiency = Actual Profit / Slot Days / Capital Tied Up` calculation and display label. The two live documents still need editing. |
+| 2. Capital efficiency not selected for T2 Workshop | Live dashboard configuration | The existing generic catalog and persisted KPI selector already support `capitalEfficiency`; no default selection or named-Track change is appropriate. Select **Profit / Slot-Day / ISK Tied Up** in the live T2 Workshop. |
+| 3. T2 procedure omits Other Cost | Live procedure data **and repository documentation omission** | Updated the repository's T2 product-test procedure to include Expected/Actual Input, Job and Other Cost where applicable, revenue, manufacturing duration/concurrent slots, time to sell, Capital Tied Up, Profit per Slot-Day, capital efficiency and Scale / Retest / Drop. The live Playbook requires a separate edit. |
+| 4. Tengu production-map Objective is still 0/4 | Live checklist data | Review the existing live evidence and mark BOM, capability gaps and internal/external sourcing as satisfied where supported; facility/job eligibility remains outstanding. No inferred checklist completion or name-based mutation was added. |
+| 5. Unlinked Planning Test Track remains | Live Track data | Archive/remove the unwanted live record through the normal workflow after confirming its identity. No Track name matching, special migration or automatic archive was added. |
+| 6. Intentional over-allocation still appears actionable | Application feature gap | Added generic persisted acknowledgement and Restore actions; the financial condition and all original rule predicates remain unchanged. |
+
+### Architecture, persistence and identity
+
+- `AttentionItem` now exposes a deterministic key built from rule, subject type and subject ID. Run missing-sales/verdict, Objective checklist/overdue and pool-utilisation rules carry their individual GUIDs. Rules on the same subject remain independent. Identical names/shared navigation paths cannot cause unrelated entities to share acceptance.
+- Existing aggregate unassociated-job and wallet-freshness rules, plus over-allocation, retain programme scope. Accepting those findings accepts the whole programme condition, including changing counts/characters. No arbitrary user-defined rules or economic-plan constants were added.
+- Migration `20260923181311_AddAttentionAcknowledgements` adds only an acknowledgement table and unique key index. Each row stores its own GUID, stable key/rule, optional subject type/ID, UTC timestamp and saved message/path for later inspection. It neither modifies nor backfills existing management, factual, financial or snapshot records.
+- Acceptance persists until explicit Restore, even through a clear/recur interval. This avoids behaviour depending on whether a dashboard read happened during that interval. The API/UI always show whether the rule currently matches; cleared/deleted subjects retain saved context without a broken link. Renames keep identity, current matches use current generated messages, and a new entity with the same name gets a different GUID.
+- No acknowledgement note editor was added; the small acceptance/timestamp/restore workflow is sufficient. ESI refresh continues to own factual tables only.
+
+### API and UI
+
+- `GET /api/economics/attention` reads active and acknowledged lists. The existing overview also exposes those partitions (`attention` and `acknowledged`) alongside unchanged programme summaries. Rules run normally before partitioning, and GET requests do not prune or mutate acceptance.
+- `POST /api/economics/attention/acknowledgements` accepts only the key of a currently generated finding, validates and saves in a database transaction, and rejects absent/cleared/unsupported findings. Human-readable text and suppression scope cannot be supplied by the client. Duplicate/stale actions return 409.
+- `DELETE /api/economics/attention/acknowledgements/{id}` removes that specific acceptance; its GUID acts as a generation token, so an old Restore request cannot delete a newer acceptance. Unique-key/concurrency conflicts return 409 with reload guidance.
+- The existing Needs Attention panel gains Acknowledge, Show/Hide acknowledged, timestamps/current-match labels and Restore. The panel explains persistent acceptance, disables actions while saving/loading and reports success/errors. It does not alter capital, Track status, Objective completion, Run values or EVE data.
+
+### Tests and verification
+
+- Added backend coverage for normal over-allocation, persisted acceptance, active/acknowledged API partitions, direct underlying-rule evaluation, unchanged stored economic/factual state and native capital-efficiency results, real host restart with the same isolated on-disk database, and restore/reappearance.
+- Parameterised identity coverage checks both Run rules, both Objective rules and pool utilisation with same-name entities; accepting one leaves every other matching rule/entity active, and renames update displayed context without losing acceptance.
+- Covered clear/recur semantics, deleted-subject inspection, replacement-entity isolation, restore of a cleared finding, unsupported/nonmatching/invalid keys, duplicate acceptance and stale Restore after re-acceptance. Existing tests still cover all eight deterministic rules and Economic Plan calculations.
+- Extended the ESI preservation fixture to acknowledge a generated finding and compare fresh stored acknowledgement rows together with all other management data through successful, failed, malformed and expired-job refreshes.
+- Added a real API/database Playwright workflow for acknowledge → reload → inspect → restore → reload, independent same-rule entity visibility, unchanged Objective data and cleared-condition inspection/restore.
+- Extended the isolated Compose smoke test to persist an acknowledgement across actual container recreation, check timestamp/matching state and unchanged Objective data, and restore the warning.
+- Full browser verification exposed an existing chart-library initialization race: its delayed initial response could reset an already-entered definition name, leaving Save disabled in the Economic Plan accounting workflow. The editor/New chart action now wait for initial data before accepting input. Added a controlled delayed-schema-response browser regression; the accounting test itself remains unchanged.
+- Final verification (2026-09-23): `dotnet build --no-restore` PASS with zero warnings/errors; `dotnet test --no-restore` PASS, all **112** tests; frontend `npm run build` PASS; full `npx playwright test` PASS, all **27** browser workflows, including the unchanged Economic Plan accounting/KPI/chart/snapshot workflow and the new acknowledgement and delayed-chart-load tests.
+- `dotnet ef migrations has-pending-model-changes --project src/GhostWatch.Api --no-build` PASS, no pending changes. Reviewed generated upgrade SQL from `AddRunJobCostAndCapitalEfficiency`: new table/index and migration-history insert only, with no existing-data changes. Existing isolated legacy upgrade tests and the restart test verify applied migrations/model consistency and retained accounting/snapshot data.
+- Final `python3 scripts/verify-container.py` PASS after the chart fix: production image build, non-root runtime, UI/deep links, API, migration/startup, named-volume preservation and acknowledgement persistence/restore across container recreation. Only the script's uniquely named temporary project/volume were recreated and removed. `git diff --check` PASS.
+
+### Remaining live configuration
+
+Findings 1–5 remain live-data corrections as described above; they are not unresolved application defects. Repository procedure documentation is corrected independently. The intentional live over-allocation warning can be acknowledged by the user once this version is deployed, but no acceptance was created in the live database. The user's database, credentials and running deployment were not edited, restarted or redeployed.

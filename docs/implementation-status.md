@@ -47,7 +47,7 @@ Final audit states: **PASS** = end-to-end implemented and verified; **BLOCKED** 
 | 39 | Chart width | PASS | Small/Medium/Wide stored per placement and responsive layout |
 | 40 | Dashboard headline metrics | PASS | Four concrete metrics from recorded finance; explicit unknowns |
 | 41 | Active Tracks | PASS | Named programmes with allocation, commitments and 30-day P/L |
-| 42 | Deterministic Needs Attention | PASS | Documented small rule set, actionable named links |
+| 42 | Deterministic Needs Attention | PASS | Documented rule set and named links; persisted acknowledgement, current-match inspection and Restore with entity-safe identity |
 | 43 | Configurable charts | PASS | One Chart.js renderer: line, bar, stacked bar, pie/donut and KPI; accessible data table |
 | 44 | Operational Track detail | PASS | Financials/KPIs, capital, Runs/jobs, Objectives, knowledge, Characters/stages and reusable charts |
 | 45 | Preserve management through ESI refresh | PASS | Full fresh-database comparison of all local management families after successful, failed and expired-job refreshes |
@@ -103,3 +103,26 @@ Follow-up verification (2026-09-23):
 - No live deployment/database changes or fresh live EVE verification were performed. Previous external verification notes remain separate from this completed repository follow-up.
 
 Exact financial formulas, aggregation and migration implications are documented in [Financial metrics](financial-metrics.md); chart measure/format examples are in [Chart configuration](chart-configuration.md).
+
+## Economic Plan v1 browser-audit follow-up
+
+**Needs Attention acknowledgements: PASS.** End-to-end implementation and verification are complete. The feature separates deterministic matches from persisted acceptance, keeps acknowledged findings inspectable, and supports Restore. Acceptance remains until restored, including after clear/recurrence, with explicit current-match labels. Rule/entity identity and per-acceptance GUIDs prevent unrelated entities or stale Restore actions from sharing/removing acceptance. [Financial metrics](financial-metrics.md#needs-attention-acknowledgements) documents the contract and semantics.
+
+Remaining **live configuration cleanup**, separate from application defects:
+
+1. Update the T2 Playbook and monthly-review Record to describe native capital efficiency.
+2. Select **Profit / Slot-Day / ISK Tied Up** for the T2 Workshop KPI list.
+3. Add Expected/Actual Other Cost where applicable to the live T2 procedure.
+4. Review and update the Tengu Objective's BOM, capability-gap and internal/external sourcing checks from existing evidence; facility/job eligibility remains outstanding.
+5. Archive the unwanted unlinked Test Track through normal management controls.
+
+These records are user-managed database content with no repository seeds. The repository T2 procedure now includes Other Cost and native capital efficiency. No Economic Plan-specific data migration or name-based automatic action was introduced. Full classification, implementation and test evidence are appended to the existing [implementation log](implementation-log.md#economic-plan-v1-browser-audit-follow-up--needs-attention-acknowledgements). The live deployment and database remain untouched.
+
+Browser-audit follow-up verification (2026-09-23):
+
+- Backend build: PASS, zero warnings/errors; all **112** backend tests PASS.
+- Frontend production build and all **27** Playwright workflows: PASS, including acknowledge/reload/inspect/restore, entity isolation, unchanged Objective state, cleared-item inspection and the existing Economic Plan accounting workflow.
+- Host restart/database persistence, stale-action protection and ESI refresh preservation: PASS. Underlying rule predicates and financial calculations remain unchanged.
+- EF model/migrations: PASS, no pending model changes; upgrade SQL adds only the acknowledgement table/index, and isolated legacy migration tests preserve accounting and snapshots.
+- Final isolated production container verification: PASS, including persisted acknowledgement inspection and Restore after actual container recreation; live services/data were untouched.
+- Browser verification also exposed and fixed a chart-editor initialization race that could clear early user input. A delayed-response regression test passes; the accounting browser test remains unchanged.

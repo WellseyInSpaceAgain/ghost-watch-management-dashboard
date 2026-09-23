@@ -70,10 +70,34 @@ try:
     }).encode(), headers={"Content-Type": "application/json"})
     with urllib.request.urlopen(request) as response:
         track = json.load(response)
+    def send(path, payload=None, method="POST"):
+        request = urllib.request.Request(base + path, data=json.dumps(payload).encode() if payload is not None else None,
+                                         headers={"Content-Type": "application/json"}, method=method)
+        with urllib.request.urlopen(request, timeout=5) as response:
+            body = response.read()
+            return json.loads(body) if body else None
+
+    objective = send("/api/economics/objectives", {
+        "name": "Container attention persistence", "type": "Objective", "status": "Active",
+        "conditions": [{"label": "Intentional outstanding condition", "done": False}],
+    })
+    original_objective = json.loads(get("/api/economics/objectives/" + objective["id"]))
+    finding = json.loads(get("/api/economics/attention"))["active"][0]
+    accepted = send("/api/economics/attention/acknowledgements", {"key": finding["key"]})
+    assert json.loads(get("/api/economics/attention"))["active"] == []
     base = start()
+    attention = json.loads(get("/api/economics/attention"))
+    assert attention["active"] == []
+    assert attention["acknowledged"] == [accepted]
+    assert accepted["matches"] is True and accepted["acknowledgedAt"].endswith("Z")
+    assert json.loads(get("/api/economics/objectives/" + objective["id"])) == original_objective
+    send("/api/economics/attention/acknowledgements/" + accepted["id"], method="DELETE")
+    restored_attention = json.loads(get("/api/economics/attention"))
+    assert restored_attention["active"] == [finding]
+    assert restored_attention["acknowledged"] == []
     restored = json.loads(get("/api/economics/tracks/" + track["id"]))
     assert restored["notes"] == "Preserve this across container recreation"
     assert restored["createdAt"].endswith("Z")
-    print("PASS: non-root container, UI/deep links, API, migrations and named-volume persistence across recreation.")
+    print("PASS: non-root container, UI/deep links, API, migrations, named-volume and acknowledgement persistence/restore across recreation.")
 finally:
     subprocess.run([*compose, "down", "--volumes"], check=False)

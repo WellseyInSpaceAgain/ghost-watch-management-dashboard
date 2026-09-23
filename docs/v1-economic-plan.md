@@ -46,15 +46,17 @@ Start with small test batches from blueprints already available to us, especiall
 
 Each product test should record:
 
-- total input cost
-- job cost
+- Expected/Actual Input Cost
+- Expected/Actual Job Cost
+- Expected/Actual Other Cost where applicable (record zero when known to be absent)
 - expected sale value after fees
 - realised revenue
 - realised profit
 - manufacturing time
 - time to sell
-- profit per slot-day
-- capital tied up
+- Profit per Slot-Day
+- Capital Tied Up
+- Profit / Slot-Day / ISK Tied Up
 - verdict: **Scale / Retest / Drop**
 
 The important comparison is not percentage margin alone.
@@ -62,6 +64,8 @@ The important comparison is not percentage margin alone.
 A useful comparison metric is:
 
 > **ISK profit per slot-day per ISK of capital tied up**
+
+The dashboard calculates this natively: `Capital Efficiency = Actual Profit / Slot Days / Capital Tied Up`. Select **Profit / Slot-Day / ISK Tied Up** in the Track KPI selection to display it. Record manufacturing duration and concurrent slots so Slot Days can be calculated; missing profit, duration or positive Capital Tied Up leaves the ratio unknown.
 
 A product with a large percentage margin but poor turnover may be worse than a product with a smaller margin that sells quickly and repeatedly.
 

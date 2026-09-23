@@ -17,6 +17,7 @@ namespace GhostWatch.Api.Data;
 
 public sealed class GhostWatchDbContext(DbContextOptions<GhostWatchDbContext> options) : DbContext(options)
 {
+    public DbSet<AttentionAcknowledgement> AttentionAcknowledgements => Set<AttentionAcknowledgement>();
     public DbSet<ChartDefinition> ChartDefinitions => Set<ChartDefinition>();
     public DbSet<ChartPlacement> ChartPlacements => Set<ChartPlacement>();
     public DbSet<EconomicSnapshot> EconomicSnapshots => Set<EconomicSnapshot>();
@@ -44,6 +45,10 @@ public sealed class GhostWatchDbContext(DbContextOptions<GhostWatchDbContext> op
 
     protected override void OnModelCreating(ModelBuilder model)
     {
+        var acknowledgement = model.Entity<AttentionAcknowledgement>();
+        acknowledgement.HasKey(x => x.Id);
+        acknowledgement.HasIndex(x => x.Key).IsUnique();
+        acknowledgement.Property(x => x.AcknowledgedAt).HasConversion(v => v, v => DateTime.SpecifyKind(v, DateTimeKind.Utc));
         var chart = model.Entity<ChartDefinition>(); chart.HasKey(x => x.Id); chart.Property(x => x.Revision).IsConcurrencyToken();
         chart.Property(x => x.CreatedAt).HasConversion(v => v, v => DateTime.SpecifyKind(v, DateTimeKind.Utc));
         chart.Property(x => x.UpdatedAt).HasConversion(v => v, v => DateTime.SpecifyKind(v, DateTimeKind.Utc));

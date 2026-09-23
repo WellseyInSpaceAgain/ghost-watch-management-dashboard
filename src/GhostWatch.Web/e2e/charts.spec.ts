@@ -40,3 +40,19 @@ test('supported renderers and invalid JSON preview recover without running code'
   if(type==='kpi')await expect(page.locator('app-chart-renderer .kpi')).toHaveText('1');else await expect(page.locator('canvas')).toBeVisible();
  }
 });
+
+test('chart editor waits for initial data before accepting edits',async({page})=>{
+ let release!:()=>void;
+ const ready=new Promise<void>(resolve=>{release=resolve;});
+ await page.route('**/api/economics/charts/schema',async route=>{await ready;await route.continue();});
+ try{
+  await page.goto('/charts',{waitUntil:'domcontentloaded'});
+  await expect(page.getByRole('status')).toHaveText('Loading chart library…');
+  await expect(page.getByLabel('Definition name',{exact:true})).toHaveCount(0);
+  await expect(page.getByRole('button',{name:'New chart',exact:true})).toBeDisabled();
+ }finally{release();}
+ await page.getByLabel('Definition name',{exact:true}).fill('Name entered after loading');
+ await expect(page.getByLabel('Chart configuration JSON')).toHaveValue(/Expected and actual profit/);
+ await expect(page.getByLabel('Definition name',{exact:true})).toHaveValue('Name entered after loading');
+ await expect(page.getByRole('button',{name:'Save definition',exact:true})).toBeEnabled();
+});
