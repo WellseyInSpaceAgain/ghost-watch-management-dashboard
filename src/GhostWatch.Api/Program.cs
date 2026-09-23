@@ -1,3 +1,4 @@
+using GhostWatch.Api.Economics.Charts;
 using GhostWatch.Api.Economics.Snapshots;
 using GhostWatch.Api.Economics.Reporting;
 using GhostWatch.Api.Economics.Replacement;
@@ -85,6 +86,7 @@ app.MapKnowledge();
 app.MapReplacement();
 app.MapReporting();
 app.MapSnapshots();
+app.MapCharts();
 app.MapCharacterManagement();
 app.MapEveData();
 app.MapControllers();

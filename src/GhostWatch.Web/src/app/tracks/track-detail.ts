@@ -1,3 +1,4 @@
+import {ChartArea} from '../charts/chart-area';
 import { TrackOperations } from '../track-operations';
 import { TrackStrategy } from '../track-strategy';
 import { HttpClient } from '@angular/common/http';
@@ -16,7 +17,7 @@ import { Track, TrackApi, TrackDraft, TrackOptions, requestError } from './track
 
 @Component({
   selector: 'app-track-detail',
-  imports: [DatePipe, FormsModule, RouterLink, MatButtonModule, MatFormFieldModule, MatInputModule, MatSelectModule, TrackCharacters, TrackStrategy, TrackOperations],
+  imports: [DatePipe, FormsModule, RouterLink, MatButtonModule, MatFormFieldModule, MatInputModule, MatSelectModule, TrackCharacters, TrackStrategy, TrackOperations, ChartArea],
   template: `
     <a routerLink="/tracks" class="back-link">← Economy Tracks</a>
     <p class="eyebrow">ECONOMICS / {{ id ? 'TRACK DETAIL' : 'NEW TRACK' }}</p>
@@ -54,7 +55,7 @@ import { Track, TrackApi, TrackDraft, TrackOptions, requestError } from './track
           @if (saved()) { <span role="status" class="muted">Changes saved.</span> }
         </div>
       </form>
-      @if (track(); as current) { <app-track-characters [trackId]="current.id" /><app-track-strategy [trackId]="current.id" (changed)="refreshOperations()" /><p class="muted metadata">Created {{ current.createdAt | date:'medium' }} · Updated {{ current.updatedAt | date:'medium' }} · Revision {{ current.revision }}</p> }
+      @if (track(); as current) { <app-track-characters [trackId]="current.id" /><app-track-strategy [trackId]="current.id" (changed)="refreshOperations()" />@defer(on viewport){<app-chart-area pageType="Track" [pageId]="current.id" />}@placeholder{<section class="panel"><h2>Track charts</h2></section>}<p class="muted metadata">Created {{ current.createdAt | date:'medium' }} · Updated {{ current.updatedAt | date:'medium' }} · Revision {{ current.revision }}</p> }
     } @else { <button mat-stroked-button (click)="load()">Retry loading</button> }
   `,
 })

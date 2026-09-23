@@ -1,3 +1,4 @@
+import {ChartArea} from './charts/chart-area';
 import { Component, inject, signal } from '@angular/core';
 import {HttpClient} from '@angular/common/http';
 import {DatePipe} from '@angular/common';
@@ -6,7 +7,7 @@ import { MatButtonModule } from '@angular/material/button';
 import {requestError} from './tracks/track-api';
 import {MetricPipe,ProgrammeSummary} from './economic-reporting';
 interface OverviewData {summary:ProgrammeSummary;attention:{rule:string;message:string;path:string}[];activity:{name:string;kind:string;path:string;timestamp:string}[];}
-@Component({selector:'app-overview',imports:[RouterLink,MatButtonModule,MetricPipe,DatePipe],template:`
+@Component({selector:'app-overview',imports:[RouterLink,MatButtonModule,MetricPipe,DatePipe,ChartArea],template:`
 <p class="eyebrow">ECONOMICS / OVERVIEW</p>
 <div class="page-heading"><div><h1>Economic operations</h1><p class="muted">Plan the programmes. Track the work. Preserve what you learn.</p></div><a mat-flat-button routerLink="/tracks/new">Create Track</a></div>
 @if(error()){<p role="alert" class="error">{{error()}} <button mat-button (click)="load()">Retry</button></p>}
@@ -24,6 +25,7 @@ interface OverviewData {summary:ProgrammeSummary;attention:{rule:string;message:
 <section class="panel"><h2>Collected EVE finances</h2><p>Liquid wallets: <strong>{{data.summary.facts.liquid|metric}}</strong> · {{data.summary.facts.walletCount}}/{{data.summary.facts.characterCount}} collected {{data.summary.facts.walletsStale?'· Stale data':''}}</p><p>Buy commitments: {{data.summary.facts.marketBuyCommitments|metric}} · Sell-order listed value: {{data.summary.facts.sellOrderListedValue|metric}} {{data.summary.facts.ordersStale?'· Stale orders':''}}</p><p class="muted">Listed sell orders are not realised revenue. Programme profit comes from recorded completed Run actuals.</p></section>
 <section class="panel"><h2>Recent activity</h2><ul>@for(item of data.activity;track $index){<li><a [routerLink]="path(item.path)" [queryParams]="query(item.path)">{{item.name}}</a> · {{item.kind}} · {{item.timestamp|date:'medium'}}</li>}@empty{<li>No recorded activity yet.</li>}</ul></section>
 }
+@defer(on viewport){<app-chart-area />}@placeholder{<section class="panel"><h2>Dashboard charts</h2></section>}
 `})
 export class Overview {
  private readonly http=inject(HttpClient);readonly data=signal<OverviewData|null>(null);readonly loading=signal(true);readonly error=signal('');

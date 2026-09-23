@@ -36,20 +36,20 @@ States: **done** = end-to-end implemented and automated verification recorded; *
 | 28 | Manual Economic Snapshot | done | Named/noted immutable versioned capture and stored detail view |
 | 29 | Automatic monthly snapshot | done | UTC month uniqueness, transactional capture, startup catch-up and hourly checks |
 | 30 | Snapshot history | done | Stored programme/pool/Track/KPI/objective values and factual completeness |
-| 31 | Validated chart JSON | pending | Explicit fields/sources; no arbitrary code/SQL |
-| 32 | Example chart JSON | pending | |
-| 33 | Chart preview | pending | |
-| 34 | Dashboard chart placement | pending | |
-| 35 | Reuse definition across pages | pending | |
-| 36 | Track chart placements | pending | |
-| 37 | Drag/drop chart ordering | pending | |
-| 38 | Persistent chart order | pending | |
-| 39 | Chart width | pending | Small/Medium/Wide |
+| 31 | Validated chart JSON | done | Strict typed schema and source-specific validation; rejects unknown properties/code/SQL |
+| 32 | Example chart JSON | done | New editor starts with expected/actual sample; standalone JSON schema and docs |
+| 33 | Chart preview | done | Debounced validated live preview, Track context and helpful errors |
+| 34 | Dashboard chart placement | done | Dashboard chart area, shared definition selector and add/remove actions |
+| 35 | Reuse definition across pages | done | Definition edits appear in multiple placements; removal retains definition |
+| 36 | Track chart placements | done | Track chart area and CURRENT_TRACK context |
+| 37 | Drag/drop chart ordering | done | CDK drag handles plus accessible ordering controls; actual browser drag tested |
+| 38 | Persistent chart order | done | Atomic page layout update, revision conflicts and reload persistence |
+| 39 | Chart width | done | Small/Medium/Wide stored per placement and responsive layout |
 | 40 | Dashboard headline metrics | done | Four concrete metrics from recorded finance; explicit unknowns |
 | 41 | Active Tracks | done | Named programmes with allocation, commitments and 30-day P/L |
 | 42 | Deterministic Needs Attention | done | Documented small rule set, actionable named links |
-| 43 | Configurable charts | pending | Reusable renderer, line/bar/stacked/donut/KPI |
-| 44 | Operational Track detail | in progress | Financials/KPIs, Runs, relevant jobs, Objectives, knowledge, Characters/stages connected; chart area remains |
+| 43 | Configurable charts | done | One Chart.js renderer: line, bar, stacked bar, pie/donut and KPI; accessible data table |
+| 44 | Operational Track detail | done | Financials/KPIs, capital, Runs/jobs, Objectives, knowledge, Characters/stages and reusable charts |
 | 45 | Preserve management through ESI refresh | in progress | Existing Track/notes safety tested; test new relationships as added |
 
 ## Additional accepted requests

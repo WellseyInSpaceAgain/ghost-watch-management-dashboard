@@ -79,3 +79,11 @@
 - Snapshots store versioned calculated values and names, not live references for recalculation. The history UI shows programme finance, factual completeness, Capital Pools, Track KPIs and Objective/Gate progress.
 - Tests verify persisted history remains unchanged after allocations change, same-month idempotence, next-month creation and actual hosted-worker startup. Automated tests use isolated databases and disable the worker unless testing it explicitly.
 - Verification: 78 backend tests pass, frontend production build passes and manual capture/reload/immutability browser workflow passes. Removed an unused UI import reported during the build.
+
+## Reusable chart definitions and placements
+
+- Added strict typed JSON validation, explicit source/field/filter/aggregation catalogs, bounded preview queries and a documented schema/example. Five sources cover Runs, Tracks, Capital Pools, stored Snapshots and Objectives; no arbitrary database queries or code are evaluated.
+- Added a debounced preview/editor, shared definition library and one Chart.js renderer supporting line, bar, stacked bar, pie/donut and KPI. Accessible data tables preserve precise values and unknowns. Historical charts read stored snapshot values; unknown inputs propagate through aggregates.
+- Dashboard and Track areas reuse definitions through independent placements. CDK drag/drop and accessible ordering controls persist order and Small/Medium/Wide widths in a transaction; revisions detect stale layout edits. Placement removal retains the definition; in-use definitions cannot be deleted.
+- Chart dependencies load separately from fixed page content. Browser verification covers actual pointer dragging, reload persistence, shared edits across pages, placement removal, renderer variants and narrow-screen layout after the canvas resize settles.
+- Verification: 84 backend tests pass, production frontend build passes, chart browser workflows pass. The earlier approval-service credential failure was resolved after the user signed back in; no denied command was executed.

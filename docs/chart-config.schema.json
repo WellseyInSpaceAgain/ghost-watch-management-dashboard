@@ -1,0 +1,183 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Ghost Watch Chart Configuration",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "title",
+    "type",
+    "dataSource",
+    "x",
+    "series"
+  ],
+  "properties": {
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 160
+    },
+    "description": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 2000
+    },
+    "type": {
+      "enum": [
+        "line",
+        "bar",
+        "stackedBar",
+        "pie",
+        "donut",
+        "kpi"
+      ]
+    },
+    "dataSource": {
+      "enum": [
+        "runs",
+        "tracks",
+        "capitalPools",
+        "snapshots",
+        "objectives"
+      ]
+    },
+    "timeRange": {
+      "enum": [
+        "all",
+        "30d",
+        "90d",
+        "365d",
+        null
+      ]
+    },
+    "filters": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "trackId": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Track UUID or CURRENT_TRACK"
+        },
+        "status": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "maxItems": 10,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 40
+          }
+        },
+        "runType": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 80
+        },
+        "capitalPoolId": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "uuid"
+        },
+        "product": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 200
+        },
+        "from": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        },
+        "to": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        }
+      }
+    },
+    "x": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "field"
+      ],
+      "properties": {
+        "field": {
+          "type": "string",
+          "minLength": 1
+        },
+        "label": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 120
+        }
+      }
+    },
+    "series": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 4,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "field",
+          "label",
+          "aggregation",
+          "format"
+        ],
+        "properties": {
+          "field": {
+            "type": "string",
+            "minLength": 1
+          },
+          "label": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "aggregation": {
+            "enum": [
+              "sum",
+              "average",
+              "min",
+              "max",
+              "count",
+              "latest"
+            ]
+          },
+          "format": {
+            "enum": [
+              "isk",
+              "number",
+              "percent",
+              "days",
+              "count"
+            ]
+          }
+        }
+      }
+    }
+  }
+}

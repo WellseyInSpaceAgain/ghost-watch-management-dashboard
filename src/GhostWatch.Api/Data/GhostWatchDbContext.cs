@@ -1,3 +1,4 @@
+using GhostWatch.Api.Economics.Charts;
 using GhostWatch.Api.Economics.Snapshots;
 using GhostWatch.Api.Economics.Reporting;
 using GhostWatch.Api.Economics.Replacement;
@@ -16,6 +17,8 @@ namespace GhostWatch.Api.Data;
 
 public sealed class GhostWatchDbContext(DbContextOptions<GhostWatchDbContext> options) : DbContext(options)
 {
+    public DbSet<ChartDefinition> ChartDefinitions => Set<ChartDefinition>();
+    public DbSet<ChartPlacement> ChartPlacements => Set<ChartPlacement>();
     public DbSet<EconomicSnapshot> EconomicSnapshots => Set<EconomicSnapshot>();
     public DbSet<TrackKpiSelection> TrackKpiSelections => Set<TrackKpiSelection>();
     public DbSet<ReplacementPackage> ReplacementPackages => Set<ReplacementPackage>();
@@ -41,6 +44,16 @@ public sealed class GhostWatchDbContext(DbContextOptions<GhostWatchDbContext> op
 
     protected override void OnModelCreating(ModelBuilder model)
     {
+        var chart = model.Entity<ChartDefinition>(); chart.HasKey(x => x.Id); chart.Property(x => x.Revision).IsConcurrencyToken();
+        chart.Property(x => x.CreatedAt).HasConversion(v => v, v => DateTime.SpecifyKind(v, DateTimeKind.Utc));
+        chart.Property(x => x.UpdatedAt).HasConversion(v => v, v => DateTime.SpecifyKind(v, DateTimeKind.Utc));
+        var placement = model.Entity<ChartPlacement>(); placement.HasKey(x => x.Id); placement.Property(x => x.Revision).IsConcurrencyToken();
+        placement.HasOne<ChartDefinition>().WithMany().HasForeignKey(x => x.ChartDefinitionId).OnDelete(DeleteBehavior.Restrict);
+        placement.HasOne<EconomyTrack>().WithMany().HasForeignKey(x => x.PageId).OnDelete(DeleteBehavior.Restrict);
+        placement.ToTable(table => table.HasCheckConstraint("CK_ChartPlacement_Page", "(PageType = 'Dashboard' AND PageId IS NULL) OR (PageType = 'Track' AND PageId IS NOT NULL)"));
+        placement.HasIndex(x => new { x.PageType, x.PageId, x.SortOrder });
+        placement.Property(x => x.CreatedAt).HasConversion(v => v, v => DateTime.SpecifyKind(v, DateTimeKind.Utc));
+        placement.Property(x => x.UpdatedAt).HasConversion(v => v, v => DateTime.SpecifyKind(v, DateTimeKind.Utc));
         var snapshot = model.Entity<EconomicSnapshot>(); snapshot.HasKey(x => x.Id);
         snapshot.HasIndex(x => x.MonthKey).IsUnique().HasFilter("\"MonthKey\" IS NOT NULL");
         snapshot.Property(x => x.Timestamp).HasConversion(v => v, v => DateTime.SpecifyKind(v, DateTimeKind.Utc));
