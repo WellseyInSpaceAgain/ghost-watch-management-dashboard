@@ -141,3 +141,7 @@ Character detail provides searchable named skills, skill queue, orders, PI colon
 **Chart library** provides sample JSON, validation and live preview. Add a shared definition to Dashboard or Track chart areas, choose **Edit chart layout**, drag or use Move up/down, select widths and **Save layout**. Removing a placement retains its definition. Definitions update all their placements. [Chart configuration documentation](docs/chart-configuration.md) lists supported fields and historical-value semantics.
 
 Unknown financial inputs remain unknown. Enter zero explicitly when known; a successful R&D verdict does not imply profitable sales. No automatic sample management data is inserted into your normal database.
+
+## License
+
+Licensed under the [MIT License](LICENSE).
